@@ -1,0 +1,15 @@
+
+# Theta (in degrees)
+theta: 30
+
+# Lookahead distance (in mtrs)
+lookahead: 1.5
+
+# Target distance distance to maintain - Refernece/Set point (in mtrs)
+target_distance: 0.75
+
+# Wall following mode: 'L' --> FollowLeft; 'R' --> FollowRight; 'C' --> FollowCenter
+mode: 'R'
+
+# PID gains
+pid_gains: {'P': 0.5, 'I': 0.0, 'D': 0.01}

@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+  <include file="$(find racecar_simulator)/launch/simulator.launch">
+        <arg name="map" value="$(find racecar_simulator/)/maps/levine.yaml"/>
+  </include>
+
+  <rosparam command="load" file="$(find nautilus_wall_following)/config/params.yaml"/>
+
+  <!-- output="screen" allows us to see print statements-->
+  <node pkg="nautilus_wall_following" name="pid_error_node" type="nautilus_pid_error.py" output="screen"/>
+  <node pkg="nautilus_wall_following" name="control_node" type="nautilus_control.py" output="screen"/>
+  <node pkg="nautilus_wall_following" name="error_analysis" type="nautilus_analysis.py" output="screen"/>
+  <node pkg="wall_following" name="sim_connector_node" type="sim_connector.py" output="screen"/>
+
+</launch>
