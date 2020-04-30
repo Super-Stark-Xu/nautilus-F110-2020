@@ -8,12 +8,14 @@ lookahead: 1.5
 # Target distance distance to maintain - Refernece/Set point (in mtrs)
 target_distance: 1.4
 
-# Wall following mode: 'L' --> FollowLeft; 'R' --> FollowRight; 'C' --> FollowCenter
-direction: 'left'
-
 # PID gains
 pid_gains: {'P': 0.5, 'I': 0.0, 'D': 0.01}
 
-# Turn Flag
-turn_flag: 'INACTIVE'
+# Wall following mode
+direction: 'left'
 
+# Wall-following velocity
+velocity: 1.5
+
+# Turn check Flag
+turn_flag: 'INACTIVE'

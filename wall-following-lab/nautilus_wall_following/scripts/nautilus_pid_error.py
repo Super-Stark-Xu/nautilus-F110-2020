@@ -104,9 +104,12 @@ def scan_callback(data):
  	   error = error_right
     elif DIRECTION == 'center':
  	   error = error_center
+    elif DIRECTION == 'stop':
+        error = 0.00
+        print("Stopping vechicle!!")
     else:
-        print("Invalid choice!")
-        rospy.on_shutdown()
+        print("Invalid Choice!")
+        # rospy.on_shutdown()
 
     msg = Float64()
     msg.data = error

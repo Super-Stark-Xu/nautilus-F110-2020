@@ -77,6 +77,9 @@ def control_callback(msg):
     else:
         vel = 0.5
 
+    if direction == 'stop':
+        vel = 0.0
+        angle = 0.0
     '''
     # Check for T-junction - this should be output from gap finding
     if T_junction_check == True:
