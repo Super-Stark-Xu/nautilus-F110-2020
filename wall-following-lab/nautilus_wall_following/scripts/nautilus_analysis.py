@@ -6,7 +6,7 @@ import numpy as np
 import yaml
 import sys
 from std_msgs.msg import Float64
-from baskaran_wall_following.msg import error_analysis
+from nautilus_wall_following.msg import error_analysis
 
 cnt = 0
 prev_avg = 0.0
@@ -36,6 +36,6 @@ def error_callback(msg):
 	pub.publish(error_analysis_msg)
 
 if __name__ == '__main__':
- 	rospy.init_node('baskaran_anaysis_node', anonymous = True)
+ 	rospy.init_node('nautilus_anaysis_node', anonymous = True)
 	rospy.Subscriber("pid_error", Float64, error_callback)
 	rospy.spin()

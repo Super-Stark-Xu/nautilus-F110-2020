@@ -9,7 +9,11 @@ lookahead: 1.5
 target_distance: 1.4
 
 # Wall following mode: 'L' --> FollowLeft; 'R' --> FollowRight; 'C' --> FollowCenter
-mode: 'L'
+direction: 'left'
 
 # PID gains
 pid_gains: {'P': 0.5, 'I': 0.0, 'D': 0.01}
+
+# Turn Flag
+turn_flag: 'INACTIVE'
+

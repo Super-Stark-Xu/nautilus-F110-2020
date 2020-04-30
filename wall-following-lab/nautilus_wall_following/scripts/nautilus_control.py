@@ -11,7 +11,7 @@ import os
 
 pid_gains = rospy.get_param('pid_gains')
 KP, KI, KD = pid_gains['P'], pid_gains['I'], pid_gains['D']
-MODE = rospy.get_param('mode')
+
 # KP = 0.5
 # KI = 0.00 #0.0001
 # KD = 0.005 #0.001 - 0.005
@@ -24,9 +24,9 @@ sum_error = 0.00
 pub = rospy.Publisher('drive_parameters', drive_param, queue_size=1)
 
 # Get the direction and velocity from the instructions.csv file
-def get_direction():
-    direction_possible = True # this should be from a function that checks the gap finding output
-    #with open('instructions.csv', 'rb') as csvfile:
+# def get_direction():
+    # direction_possible = True # this should be from a function that checks the gap finding output
+    # with open('instructions.csv', 'rb') as csvfile:
     #    direction_reader = csv.reader(csvfile, delimiter=' ')
     #    for row in direction_reader:
     #        print(', '.join(row))
@@ -37,7 +37,7 @@ def get_direction():
     #            velocity = row[1]
     #            print("get_direction will return: ",row[0]," ",row[1])
     #            return direction, velocity
-    return 'left', 3
+    # return 'left', 3
 
 
 # Callback for receiving PID error data on the /pid_error topic
@@ -63,8 +63,21 @@ def control_callback(msg):
     vel = 0.5 # default
 
     # Car starts driving down center
-    MODE = rospy.get_param('mode')
-    print("Check Mode: ", MODE)
+    direction = rospy.get_param('direction')
+    vel = rospy.get_param('velocity')
+    
+    print("Check Direction: ", direction)
+
+    if abs(ang_deg) >= 0.0 and abs(ang_deg) <= 10.0:
+        vel = vel
+
+    elif abs(ang_deg) >=10 and abs(ang_deg) <= 20.0:
+        vel = 1.0
+
+    else:
+        vel = 0.5
+
+    '''
     # Check for T-junction - this should be output from gap finding
     if T_junction_check == True:
         print("After t-junction check")
@@ -86,6 +99,7 @@ def control_callback(msg):
             vel = 1.0
         else:
             vel = 0.5
+    '''
 
     # Commit to do next turn --> send action/velocity
     msg = drive_param()

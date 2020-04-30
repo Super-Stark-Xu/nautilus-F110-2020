@@ -21,7 +21,7 @@ MAX_ANGLE = 225.0
 THETA = rospy.get_param('theta')
 L_DIST = rospy.get_param('lookahead')
 TARGET_DIST = rospy.get_param('target_distance')
-MODE = rospy.get_param('mode')
+DIRECTION = rospy.get_param('direction')
 
 SCAN_LIMIT = 1
 scan_vector = []
@@ -96,13 +96,13 @@ def scan_callback(data):
     error_right = TARGET_DIST - followRight(data)
     error_center = followCenter(data)
 
-    MODE = rospy.get_param('mode')
-    print("***Mode: ",MODE)
-    if MODE == 'L':
+    DIRECTION = rospy.get_param('direction')
+    print("***Direction: ",DIRECTION)
+    if DIRECTION == 'left':
  	    error = error_left
-    elif MODE =='R':
+    elif DIRECTION == 'right':
  	   error = error_right
-    elif MODE == 'C':
+    elif DIRECTION == 'center':
  	   error = error_center
     else:
         print("Invalid choice!")
