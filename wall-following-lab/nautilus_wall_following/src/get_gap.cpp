@@ -11,7 +11,7 @@
 #include <numeric>
 
 #define THRESHOLD 0.1  //10 cm is the threshold b/w 2 consecutive prev_measurement
-#define MIN_WIDTH 2.0  //50 cm minimum permissible gap width for the car to penetrate.
+#define MIN_WIDTH 1.0  //50 cm minimum permissible gap width for the car to penetrate.
 #define MIN_DEPTH 2.0 //100 cm minimum permissible depth for the car to penetrate.
 #define SCAN_THRESHOLD 1 // number of scans to average the gap center
 #define METRIC 0 // 0 --> best gap based on max depth; 1 --> based gap based on max width
