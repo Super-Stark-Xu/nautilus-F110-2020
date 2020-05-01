@@ -10,7 +10,7 @@
 #include <cmath>
 #include <numeric>
 
-#define THRESHOLD 0.1  //10 cm is the threshold b/w 2 consecutive prev_measurement
+#define THRESHOLD 0.25  //10 cm is the threshold b/w 2 consecutive prev_measurement
 #define MIN_WIDTH 1.0  //50 cm minimum permissible gap width for the car to penetrate.
 #define MIN_DEPTH 2.0 //100 cm minimum permissible depth for the car to penetrate.
 #define SCAN_THRESHOLD 1 // number of scans to average the gap center
@@ -112,6 +112,7 @@ void find_gap::callback_scan(const sensor_msgs::LaserScan& scan_msg)
 	nautilus_wall_following::gap cur_gap;
 	cur_gap.dist_l = scan_msg.ranges[START_IDX];
 	cur_gap.min_depth = scan_msg.ranges[START_IDX];
+	cur_gap.max_depth = scan_msg.ranges[START_IDX];
 	cur_gap.start_idx = START_IDX;
 	cur_gap.width = 0.0;
 	cur_gap.num_points = 0;
@@ -132,6 +133,12 @@ void find_gap::callback_scan(const sensor_msgs::LaserScan& scan_msg)
 			{
 				cur_gap.min_depth = scan_msg.ranges[i];
 			}
+
+			if (scan_msg.ranges[i] > cur_gap.max_depth)
+			{
+				cur_gap.max_depth = scan_msg.ranges[i];
+			}
+
 		}
 
 		else
@@ -163,6 +170,7 @@ void find_gap::callback_scan(const sensor_msgs::LaserScan& scan_msg)
 			// re-initialize the values again
 			cur_gap.dist_l = scan_msg.ranges[i];
 			cur_gap.min_depth = scan_msg.ranges[i];
+			cur_gap.max_depth = scan_msg.ranges[i];
 			cur_gap.start_idx = i;
 			cur_gap.width = 0.0;
 			cur_gap.num_points = 0;
@@ -195,20 +203,6 @@ void find_gap::callback_scan(const sensor_msgs::LaserScan& scan_msg)
 		{
 			gap_array.max_width = cur_gap.width;
 			gap_array.max_width_idx = gap_array.gapArray.size() - 1;
-		}
-	}
-
-	// Dispaly info only if 3 or more gaps found
-	if (gap_array.gapArray.size() >= 3)
-	{
-		std::cerr<<"\n Gap Array size: "<<gap_array.gapArray.size()<<std::endl;
-		std::cerr<<"Best Gap idx (width,depth): "<<gap_array.max_width_idx<<" "<< gap_array.max_depth_idx<<std::endl;
-
-		for (int j=0; j< gap_array.gapArray.size(); j++)
-		{
-			cur_gap = gap_array.gapArray[j];
-			std::cerr<<"Gap no. "<<j<<"  Angle: "<<cur_gap.angle<<" Num points: "<<cur_gap.num_points<<" gap width: "<<cur_gap.width<<" gap depth: "<<cur_gap.min_depth<<std::endl;
-			std::cerr<<std::endl;
 		}
 	}
 

@@ -20,11 +20,14 @@ import math
 RIGHT_ANGLE = -20
 LEFT_ANGLE = 20
 
-TURN_RADIUS = 80
-DIST_THRESH = 6.00
+TURN_RADIUS = 50
+CENTER_NIL_CNT = 40*7
 
 MIN_WIDTH = 2.0
-MAX_WIDTH = 8.0
+MAX_WIDTH = 20.0
+
+MIN_DEPTH = 2.0
+MAX_DEPTH = 75.0
 
 class junctionDetection:
 	def __init__(self):
@@ -36,8 +39,8 @@ class junctionDetection:
 		self.yaw_init = None
 		self.trans_init = None
 		self.current_behavior = None
+		self.center_nil_cnt = 0
 
-		self.ackermann_pub = rospy.Publisher('/nav', AckermannDriveStamped, queue_size=5)
 		self.marker_pub = rospy.Publisher('/junction_visualization', Marker, queue_size=1)
 
 		# All subscriber calls after this point
@@ -59,8 +62,8 @@ class junctionDetection:
 
 	def publish_marker(self, turn_flag):
 		marker = Marker()
-		marker.header.frame_id = "/laser"
-		marker.pose.position.x = 1.5
+		marker.header.frame_id = "/base_link"
+		marker.pose.position.x = 1.0
 		marker.pose.position.y = 0.0
 		marker.pose.position.z = 0.0
 
@@ -76,7 +79,7 @@ class junctionDetection:
 			marker.color.g = 1.0
 			marker.color.b = 0.0
 
-		marker.scale.x = 1.0 # If marker is too small in Rviz can make it bigger here
+		marker.scale.x = 1.0 
 		marker.scale.y = 1.0
 		marker.scale.z = 1.0
 		marker.color.a = 1.0
@@ -116,10 +119,9 @@ class junctionDetection:
 		yaw_cur, trans_cur = self.get_yaw_angle()
 		yaw_diff = abs(yaw_cur - self.yaw_init)
 		dist_mag = self.get_distance_mag(trans_cur, self.trans_init)
-	
+		
 		if direction == 'left' or direction == 'right':
-			if  yaw_diff >= TURN_RADIUS and dist_mag >= DIST_THRESH: #jn_type == 'Nil':
-
+			if  yaw_diff >= TURN_RADIUS:
 				print("\n\n***********************************")
 				print("****** Completed ********")
 				print(self.current_behavior)
@@ -128,14 +130,17 @@ class junctionDetection:
 				self.publish_marker('INACTIVE')
 					
 		if direction == 'center':
-			if jn_type == 'Nil' and dist_mag >= DIST_THRESH:
+			if jn_type == 'Nil':
+				self.center_nil_cnt += 1
 
+			if self.center_nil_cnt >= CENTER_NIL_CNT:
 				print("\n\n***********************************")
 				print("****** Completed ********")
 				print(self.current_behavior)
 				print("***********************************")
 				rospy.set_param('turn_flag', 'INACTIVE')
 				self.publish_marker('INACTIVE')
+				self.center_nil_cnt = 0
 
 		if direction == 'stop':
 			self.direction_default = 'stop'
@@ -143,17 +148,6 @@ class junctionDetection:
 			rospy.set_param('direction', 'stop')
 			rospy.set_param('velocity', 0.00)
 			rospy.set_param('turn_flag', 'ACTIVE')
-
-			# infinite while loop may be 
-			msg = AckermannDriveStamped()
-			msg.header.stamp = rospy.Time.now()
-			msg.header.frame_id = "base_link"
-			msg.drive.speed = 0.0
-			msg.drive.acceleration = 0.0
-			msg.drive.jerk = 0.0
-			msg.drive.steering_angle = 0.0
-			msg.drive.steering_angle_velocity = 0.0
-			self.ackermann_pub.publish(msg)
 
 	def gaps_callback(self, gap_array):
 		flag_L = False
@@ -163,7 +157,7 @@ class junctionDetection:
 		for i in range(len(gap_array.gapArray)):
 			cur_gap = gap_array.gapArray[i]
 
-			if cur_gap.width >= MIN_WIDTH and cur_gap.width <= MAX_WIDTH:
+			if cur_gap.width >= MIN_WIDTH and cur_gap.width <= MAX_WIDTH and cur_gap.min_depth >= MIN_DEPTH and cur_gap.max_depth <= MAX_DEPTH:
 
 				if cur_gap.angle <= RIGHT_ANGLE:
 					flag_R = True
