@@ -4,16 +4,12 @@
         <arg name="map" value="$(find racecar_simulator)/maps/levine.yaml"/>
   </include>
 
-  <rosparam command="load" file="$(find nautilus_wall_following)/config/params_explict.yaml"/>
+  <rosparam command="load" file="$(find nautilus_wall_following)/config/params_pure.yaml"/>
 
   <!-- output="screen" allows us to see print statements-->
-  <node pkg="nautilus_wall_following" name="get_gap" type="get_gap" output="screen"/>
-
-  <node pkg="nautilus_wall_following" name="pid_error_node" type="nautilus_pid_error.py"/>	
+ <node pkg="nautilus_wall_following" name="pid_error_node" type="nautilus_pid_error.py"/>	
   <node pkg="nautilus_wall_following" name="control_node" type="nautilus_control.py"/>
   <node pkg="nautilus_wall_following" name="error_analysis" type="nautilus_analysis.py"/>
-  
-  <node pkg="nautilus_wall_following" name="junction_detection" type="nautilus_junction_detection.py" output="screen"/>
 
   <node pkg="wall_following" name="sim_connector_node" type="sim_connector.py" output="screen"/>
   <node pkg="gap_finding" name="visualize_gap_finding_node" type="visualize_gap_finding.py" output="screen"/>
