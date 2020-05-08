@@ -17,6 +17,9 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   genmsg
   message_generation
+  tf_conversions
+  eigen_conversions
+  laser_geometry
 )
 
 ## System dependencies are found with CMake's conventions
@@ -53,11 +56,10 @@ find_package(Eigen3 REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+ add_message_files(
+	FILES
+	JumpTable.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -113,7 +115,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES nautilus_scan_matching
-  CATKIN_DEPENDS geometry_msgs roscpp rospy sensor_msgs std_msgs tf message_runtime
+  CATKIN_DEPENDS geometry_msgs roscpp rospy sensor_msgs std_msgs tf laser_geometry message_runtime
   DEPENDS Eigen3
 )
 
