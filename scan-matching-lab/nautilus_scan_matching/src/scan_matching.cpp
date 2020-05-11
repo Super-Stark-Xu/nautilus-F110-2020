@@ -73,6 +73,7 @@ class ScanMatching
         drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(DRIVE_TOPIC, 1);
         fake_scan_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(FAKE_SCAN_TOPIC, 1);
         pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>(POSE_TOPIC, 1);
+	pose_pub_ = nh_.advertise<visualization_msgs::Marker>("/estimated_position", 1);
 
         //Subscriber for odometry and laserscan
         odom_sub_ = nh_.subscribe(ODOM_TOPIC, 10, &ScanMatching::odom_callback, this);
@@ -140,6 +141,12 @@ class ScanMatching
         }
         return points_;
     }
+////why the return is tr? 
+
+
+
+
+
 
     tf::Transform update_transform(tf::Transform tr)
     {
@@ -379,10 +386,19 @@ class ScanMatching
             Ci = ni*ni.transpose();
 
             PI_i<<prev_points_[j1].x, prev_points_[j1].y;
+////PI_i seems to be column vector 
+
+
+
+
+
+
+
+
+
 
             Eigen::Matrix4d temp_M = Mi.transpose()*Ci*Mi;
             Eigen::RowVector4d temp_g = -2.0*PI_i.transpose()*Ci*Mi;
-
             M += temp_M;
             g += temp_g;
         }
@@ -398,6 +414,7 @@ class ScanMatching
         curr_points_ = convert_LaserScan_toPCL(curr_scan_);
         nautilus_scan_matching::JumpTable prev_scan_jt = update_jump_table(prev_scan_);
         tf::Transform cur_tr = update_transform(tr_);
+	geometry_msgs::PoseStamped X_;
 
         for(int k=0; k<MAX_ITERATIONS; k++)
         {
@@ -420,17 +437,68 @@ class ScanMatching
 
             Eigen::Vector4d X;
             
-            //3.b. You should get a fourth order polynomial in lamda which you can solve to get value(hint:greatest real root of polynomial equn) of lamda.
+	//3.b. You should get a fourth order polynomial in lamda which you can solve to get value(hint:greatest real root of polynomial equn) of lamda
+	    Eigen::Matrix2d A;
+	    Eigen::Matrix2d B;
+		//Eigen::Matrix2d D;
+	    Eigen::Matrix4d F;//the matrix in the first term of eqn(31);
+		
+	    Eigen::Matrix2d I;
+		//Eigen::Matrix2d S;
+	    double lambda;
 
-            //3.b. Use the calculated value of lamda to estimate the transform using equation 24 in the Censi's paper.
+	    I<<1, 0,
+	    0, 1;
+		
+	    A<< M(0,0), M(0,1),
+	    M(1,0), M(1,1);
+		
+	    B<< M(0,2), M(0,3),
+            M(1,2), M(1,3);
+		
+		//D<< M(2,2), M(3,3),
+                //M(3,2), M(3,3);
+		
+	    F<< A.inverse()*B*B.transpose()*A.inverse().transpose(), -A.inverse()*B,
+	    (-A.inverse()*B).transpose(), I;
+
+/*	Actually, S = 0. So p(lambda) = 4*lambda^2.
+	eqn(31): 4*lambda^2* g_t*F*g = 16*lambda^4  =>  g_t*F*g = 4*lambda^2
+
+		S = D - B.transpose()*A.inverse()*B;
+		S_adj = S.adjoint();
+		S_adj_tp = S_adj.transpose();
+*/	  
+	    lambda = sqrt(g*F*g.transpose())/2;
+	//3.c. Use the calculated value of lamda to estimate the transform using equation 24 in the Censi's paper.
+	    X = -(2*M + lambda*W).inverse().transpose()*g.transpose();	
+
+	    X_.pose.position.x = X(0);
+	    X_.pose.position.y = X(1);
+	    X_.pose.position.z = 0;
+	    X_.pose.orientation.x = 0;
+	    X_.pose.orientation.y = 0;
+	    X_.pose.orientation.z = acos(X(2));
+	    X_.pose.orientation.w = 1;
 
             //update cur_tr based on X output
+	    Eigen::Affine3d X_eigen;
+	    tf::poseMsgToEigen(X_.pose, X_eigen);
+	    tf::transformEigenToTF(X_eigen, cur_tr);
         }
 
         //4.Publish the estimated pose from scan matching based on the transform obstained. You can visualize the pose in rviz.
+	pose_pub_.publish(X_);
+        /*5.Also transform the previous frame laserscan points using the roto-translation transform obtained and visualize it. Ideally, this should 
+		coincide with your actual current laserscan message.*/
 
-        /*5.Also transform the previous frame laserscan points using the roto-translation transform obtained and visualize it. Ideally, this should coincide
-        with your actual current laserscan message.*/
+////	need help at this part
+
+
+
+
+
+
 
         // update the prev_scan_ & prev_points_
         prev_scan_ = curr_scan_;
