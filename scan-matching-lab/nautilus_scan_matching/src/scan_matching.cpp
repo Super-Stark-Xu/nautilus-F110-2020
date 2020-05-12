@@ -2,6 +2,7 @@
 #include <string>
 #include <cmath>
 #include <eigen3/Eigen/Dense>
+#include <poly34.h>
 
 #include <ros/ros.h>
 #include <sensor_msgs/LaserScan.h>
@@ -73,7 +74,7 @@ class ScanMatching
         drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(DRIVE_TOPIC, 1);
         fake_scan_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(FAKE_SCAN_TOPIC, 1);
         pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>(POSE_TOPIC, 1);
-	pose_pub_ = nh_.advertise<visualization_msgs::Marker>("/estimated_position", 1);
+//	pose_pub_ = nh_.advertise<visualization_msgs::Marker>("/estimated_position", 1);
 
         //Subscriber for odometry and laserscan
         odom_sub_ = nh_.subscribe(ODOM_TOPIC, 10, &ScanMatching::odom_callback, this);
@@ -141,11 +142,6 @@ class ScanMatching
         }
         return points_;
     }
-////why the return is tr? 
-
-
-
-
 
 
     tf::Transform update_transform(tf::Transform tr)
@@ -384,19 +380,7 @@ class ScanMatching
             ni<<dy, -dx;
             ni.normalize();
             Ci = ni*ni.transpose();
-
             PI_i<<prev_points_[j1].x, prev_points_[j1].y;
-////PI_i seems to be column vector 
-
-
-
-
-
-
-
-
-
-
             Eigen::Matrix4d temp_M = Mi.transpose()*Ci*Mi;
             Eigen::RowVector4d temp_g = -2.0*PI_i.transpose()*Ci*Mi;
             M += temp_M;
@@ -404,6 +388,66 @@ class ScanMatching
         }
 
     }
+
+    double find_lambda(Eigen::Matrix4d &M)
+    {
+	Eigen::Matrix2d I;
+        I<<1, 0,
+        0, 1;
+	
+	Eigen::Matrix2d A;
+	Eigen::Matrix2d B;
+	Eigen::Matrix2d D;
+
+	A<<M(0,0), M(0,1),
+	M(1,0), M(1,1);
+
+	B<<M(0,2), M(0,3),
+	M(1,2), M(1,3);
+
+	D<<M(2,2), M(3,3),
+	M(3,2), M(3,3);
+
+	Eigen::Matrix2d S;
+	S = D - B.transpose()*A.inverse()*B;
+	
+	Eigen::Matrix4d F1;//the matrix in the 1st  term of eqn(31);
+	Eigen::Matrix4d F2;//the matrix in the 2nd term of eqn(31);
+	Eigen::Matrix4d F3;//the matrix in the 3rd term of eqn(31);
+
+	F1<<A.inverse()*B*B.transpose()*A.inverse().transpose(), -A.inverse()*B,
+	(-A.inverse()*B).transpose(), I;
+
+	F2<<A.inverse()*B*S.adjoint()*B.transpose()*A.inverse().transpose(), -A.inverse()*B*S.adjoint(),
+	(-A.inverse()*B*S.adjoint()).transpose(), S.adjoint();
+
+	F3<<A.inverse()*B*S.adjoint().transpose()*S.adjoint()*B.transpose()*A.inverse().transpose(), -A.inverse()*B*S.adjoint().transpose()*S.adjoint(),
+	(-A.inverse()*B*S.adjoint().transpose()*S.adjoint()).transpose(), S.adjoint().transpose()*S.adjoint();
+
+	double t0, t1, t2; // 3rd, 2nd, 1st term of left-side eqn(31)
+	t2 = 4*g*F1*g.transpose();//for lambda^2 term
+	t1 = 4*g*F2*g.transpose();//for lambda term
+	t0 = g*F3*g.transpose();//for const term
+
+	double a, b, c, d; //coefficient of x^4 + a*x^3 + b*x^2 + c*x + d = 0
+	a = S(0,0) + S(1,1);
+	b = (8*S.determinant() + 4*SQUARE(a) - t2)/16;
+	c = (4*a*S.determinant() - t1)/16;
+	d = (SQUARE(S.determinant()) - t0)/16;
+
+
+
+
+
+//// I am not sure how to use the this function
+	SolveP4(double *x,double a,double b,double c,double d);
+	double lambda;
+//// find the largest root
+////            lambda = max(x[0],x[1],x[2],x[3])
+	return lambda;
+    }
+
+
 
     void do_scan_matching(const sensor_msgs::LaserScan curr_scan_) 
     {
@@ -435,42 +479,11 @@ class ScanMatching
             Eigen::RowVector4d g;
             get_MgW_matrices(C_k, M, g, W);
 
-            Eigen::Vector4d X;
-            
 	//3.b. You should get a fourth order polynomial in lamda which you can solve to get value(hint:greatest real root of polynomial equn) of lamda
-	    Eigen::Matrix2d A;
-	    Eigen::Matrix2d B;
-		//Eigen::Matrix2d D;
-	    Eigen::Matrix4d F;//the matrix in the first term of eqn(31);
-		
-	    Eigen::Matrix2d I;
-		//Eigen::Matrix2d S;
-	    double lambda;
+	    double lambda = find_lambda(M);
 
-	    I<<1, 0,
-	    0, 1;
-		
-	    A<< M(0,0), M(0,1),
-	    M(1,0), M(1,1);
-		
-	    B<< M(0,2), M(0,3),
-            M(1,2), M(1,3);
-		
-		//D<< M(2,2), M(3,3),
-                //M(3,2), M(3,3);
-		
-	    F<< A.inverse()*B*B.transpose()*A.inverse().transpose(), -A.inverse()*B,
-	    (-A.inverse()*B).transpose(), I;
-
-/*	Actually, S = 0. So p(lambda) = 4*lambda^2.
-	eqn(31): 4*lambda^2* g_t*F*g = 16*lambda^4  =>  g_t*F*g = 4*lambda^2
-
-		S = D - B.transpose()*A.inverse()*B;
-		S_adj = S.adjoint();
-		S_adj_tp = S_adj.transpose();
-*/	  
-	    lambda = sqrt(g*F*g.transpose())/2;
 	//3.c. Use the calculated value of lamda to estimate the transform using equation 24 in the Censi's paper.
+	    Eigen::Vector4d X;
 	    X = -(2*M + lambda*W).inverse().transpose()*g.transpose();	
 
 	    X_.pose.position.x = X(0);
@@ -491,14 +504,6 @@ class ScanMatching
 	pose_pub_.publish(X_);
         /*5.Also transform the previous frame laserscan points using the roto-translation transform obtained and visualize it. Ideally, this should 
 		coincide with your actual current laserscan message.*/
-
-////	need help at this part
-
-
-
-
-
-
 
         // update the prev_scan_ & prev_points_
         prev_scan_ = curr_scan_;
