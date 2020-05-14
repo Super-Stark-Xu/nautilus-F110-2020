@@ -116,7 +116,7 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES nautilus_scan_matching
+  LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS geometry_msgs roscpp rospy sensor_msgs std_msgs tf laser_geometry message_runtime
   DEPENDS Eigen3
 )
@@ -133,8 +133,24 @@ include_directories(
   ${Eigen_INCLUDE_DIRS}
 )
 
+add_library(${PROJECT_NAME} src/poly34.cpp)
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
+
+install(
+  TARGETS ${PROJECT_NAME}
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+)
+
+install(
+  DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
+
+
 add_executable(scan_matching src/scan_matching.cpp)
-target_link_libraries(scan_matching ${catkin_LIBRARIES} ${Eigen_INCLUDE_DIRS})
+target_link_libraries(scan_matching ${PROJECT_NAME} ${catkin_LIBRARIES} ${Eigen_INCLUDE_DIRS})
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
