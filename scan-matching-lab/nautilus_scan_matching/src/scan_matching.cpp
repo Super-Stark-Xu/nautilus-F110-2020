@@ -440,8 +440,13 @@ class ScanMatching
 		B<<M(0,2), M(0,3),
 		M(1,2), M(1,3);
 
-		D<<M(2,2), M(3,3),
+		D<<M(2,2), M(2,3),
 		M(3,2), M(3,3);
+
+		//Scaling factor
+		// A = 2*A;
+		// B = 2*B;
+		// D = 2*D;
 
 		Eigen::Matrix2d S;
 		S = D - B.transpose()*A.inverse()*B;
@@ -482,12 +487,14 @@ class ScanMatching
             real_root = true;
             for(int i=0; i<4; i++)
             {
-                ei = error_check(roots[i], M, g, W);
-                if (ei < error)
-                {   
-                    error = ei;
-                    lambda = roots[i]; 
-                }
+                // ei = error_check(roots[i], M, g, W);
+                // if (ei < error)
+                // {   
+                //     error = ei;
+                //     lambda = roots[i]; 
+                // }
+                if (roots[i] > lambda)
+                    lambda = roots[i];
             }
         }
 
@@ -496,14 +503,14 @@ class ScanMatching
             real_root = true;
             for(int i=0; i<2; i++)
             {
-                ei = error_check(roots[i], M, g, W);
-                if (ei < error)
-                {   
-                    error = ei;
-                    lambda = roots[i]; 
-                }
-                // if (roots[i] > lambda)
-                //     lambda = roots[i];
+                // ei = error_check(roots[i], M, g, W);
+                // if (ei < error)
+                // {   
+                //     error = ei;
+                //     lambda = roots[i]; 
+                // }
+                if (roots[i] > lambda)
+                    lambda = roots[i];
             }
         }
 
