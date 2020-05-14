@@ -44,7 +44,7 @@ class ScanMatching
 	vector<geometry_msgs::Point> transformed_points_;
 
 	tf::Transform tr_;
-    tf::Transform prev_tr_;
+	tf::Transform prev_tr_;
 
 	tf::StampedTransform tf_base_laser;
 	sensor_msgs::LaserScan prev_scan_;
@@ -74,8 +74,8 @@ class ScanMatching
 		cout<<"Node started..\n";
 		//Publishers : Add others as per your need
 		drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(DRIVE_TOPIC, 1);
-		fake_scan_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(FAKE_SCAN_TOPIC, 1);
 		pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>(POSE_TOPIC, 1);
+		fake_scan_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(FAKE_SCAN_TOPIC, 1);
 		//	pose_pub_ = nh_.advertise<visualization_msgs::Marker>("/estimated_position", 1);
 
 		//Subscriber for odometry and laserscan
@@ -85,8 +85,8 @@ class ScanMatching
 		// Initialize prev_scan_ and tr_
 		prev_scan_ = *(ros::topic::waitForMessage<sensor_msgs::LaserScan>(SCAN_TOPIC, nh_, ros::Duration(5.0)));
 		prev_points_ = convert_LaserScan_toPCL(prev_scan_);
-        prev_tr_ = update_transform(tr_);
-        tf_lis.lookupTransform("/base_link", "/laser", ros::Time(0), tf_base_laser);
+		prev_tr_ = update_transform(tr_);
+		tf_lis.lookupTransform("/base_link", "/laser", ros::Time(0), tf_base_laser);
 	}
 
 	void odom_callback(const nav_msgs::Odometry::ConstPtr &odom_msg)
@@ -100,6 +100,12 @@ class ScanMatching
 		
 		map_laser_eigen = map_base_eigen*base_laser_eigen;
 		tf::transformEigenToTF(map_laser_eigen, tr_);
+	}
+
+	tf::Transform update_transform(tf::Transform tr)
+	{
+		tf::Transform new_tr = tr;
+		return new_tr;
 	}
 
 	nautilus_scan_matching::JumpTable update_jump_table(const sensor_msgs::LaserScan scan_msg)
@@ -145,13 +151,6 @@ class ScanMatching
 		return points_;
 	}
 
-
-	tf::Transform update_transform(tf::Transform tr)
-	{
-		tf::Transform new_tr = tr;
-		return new_tr;
-	}
-
 	std::vector<geometry_msgs::Point> get_roto_translation(const std::vector<geometry_msgs::Point> points, const tf::Transform tr)
 	{
 		geometry_msgs::Point temp_pt;
@@ -170,33 +169,33 @@ class ScanMatching
 		return trans_points_;
 	}
 
-    visualization_msgs::MarkerArray getFakeScan(const std::vector<geometry_msgs::Point> prev_points_, const tf::Transform tr_q)
-    {
-        visualization_msgs::MarkerArray fake_scan_msg;
-        visualization_msgs::Marker temp_marker;
-        std::vector<geometry_msgs::Point> transformed_fake_points_;
-        transformed_fake_points_ = get_roto_translation(prev_points_, tr_q);
+	visualization_msgs::MarkerArray getFakeScan(const std::vector<geometry_msgs::Point> prev_points_, const tf::Transform tr_q)
+	{
+		visualization_msgs::MarkerArray fake_scan_msg;
+		visualization_msgs::Marker temp_marker;
+		std::vector<geometry_msgs::Point> transformed_fake_points_;
+		transformed_fake_points_ = get_roto_translation(prev_points_, tr_q);
 
-        for(int i=0; i<transformed_fake_points_.size(); i++)
-        {
-            temp_marker.type = temp_marker.SPHERE;
-            temp_marker.header.stamp = ros::Time::now();
-            temp_marker.header.frame_id = "laser";
-            temp_marker.pose.position = transformed_fake_points_[i];
-            
-            temp_marker.color.r = 1.0;
-            temp_marker.color.g = 0.0;
-            temp_marker.color.b = 0.0;
-            temp_marker.color.a = 1.0;
+		for(int i=0; i<transformed_fake_points_.size(); i++)
+		{
+			temp_marker.type = temp_marker.SPHERE;
+			temp_marker.header.stamp = ros::Time::now();
+			temp_marker.header.frame_id = "laser";
+			temp_marker.pose.position = transformed_fake_points_[i];
+			
+			temp_marker.color.r = 1.0;
+			temp_marker.color.g = 0.0;
+			temp_marker.color.b = 0.0;
+			temp_marker.color.a = 1.0;
 
-            temp_marker.scale.x = 0.1; 
-            temp_marker.scale.y = 0.1;
-            temp_marker.scale.z = 0.1;
+			temp_marker.scale.x = 0.1; 
+			temp_marker.scale.y = 0.1;
+			temp_marker.scale.z = 0.1;
 
-            fake_scan_msg.markers.push_back(temp_marker);
-        }
-        return fake_scan_msg;
-    }
+			fake_scan_msg.markers.push_back(temp_marker);
+		}
+		return fake_scan_msg;
+	}
 
 	void Cartesian_toPolar(const geometry_msgs::Point tp, double &norm, double &theta)
 	{
@@ -213,7 +212,6 @@ class ScanMatching
 
 	std::vector<nautilus_scan_matching::Correspondence> findCorrespondence(nautilus_scan_matching::JumpTable prev_scan_jt)
 	{
-        
 		nautilus_scan_matching::Correspondence temp_corr;
 		std::vector<nautilus_scan_matching::Correspondence> C_k;
 	
@@ -247,7 +245,7 @@ class ScanMatching
 
 			bool up_stopped = false;
 			bool down_stopped = false;
-            bool now_up;
+			bool now_up;
 
 			while( (!up_stopped) || (!down_stopped))
 			{
@@ -415,14 +413,21 @@ class ScanMatching
 		}
 	}
 
-    double error_check(double lambda, const Eigen::Matrix4d M, const Eigen::Vector4d g, const Eigen::Matrix4d W)
-    {
-        
-        Eigen::Vector4d X_ = -(2*M + 2*lambda*W).inverse().transpose()*g;
-        double check = X_.transpose()*W*X_;
-        double error = SQUARE(1.0 - check);
-        return error;
-    }
+	double error_check(double lambda, const Eigen::Matrix4d M, const Eigen::Vector4d g, const Eigen::Matrix4d W)
+	{
+		
+		Eigen::Vector4d X_ = -(2*M + 2*lambda*W).inverse().transpose()*g;
+		double check = X_.transpose()*W*X_;
+		double error = SQUARE(1.0 - check);
+		return error;
+	}
+
+	void zero_check(double lambda, const double a,  const double b,  const double c,  const double d)
+	{
+		double error;
+		error = pow(lambda,4) + a*(pow(lambda,3)) + b*(pow(lambda,2)) + c*lambda + d;
+		cerr<<"Poly solution check: "<<error<<endl;
+	}
 
 	bool find_lambda(double &lambda, const Eigen::Matrix4d M, const Eigen::Vector4d g, const Eigen::Matrix4d W)
 	{
@@ -475,48 +480,47 @@ class ScanMatching
 		c = (4*a*S.determinant() - t1)/16;
 		d = (SQUARE(S.determinant()) - t0)/16;
 
-        double roots[4];
-        bool real_root;
+		double roots[4];
+		bool real_root;
 		int result = SolveP4(roots, a, b, c, d);
-        
-        double error = 1e10;
-        double ei;
+		
+		double error = 1e10;
+		double ei;
 
-        if (result == 4)
-        {
-            real_root = true;
-            for(int i=0; i<4; i++)
-            {
-                // ei = error_check(roots[i], M, g, W);
-                // if (ei < error)
-                // {   
-                //     error = ei;
-                //     lambda = roots[i]; 
-                // }
-                if (roots[i] > lambda)
-                    lambda = roots[i];
-            }
-        }
+		if (result == 4)
+		{
+			real_root = true;
+			for(int i=0; i<4; i++)
+			{
+				// ei = error_check(roots[i], M, g, W);
+				// if (ei < error)
+				// {   
+				//     error = ei;
+				//     lambda = roots[i]; 
+				// }
+				if (roots[i] > lambda)
+					lambda = roots[i];
+			}
+		}
 
-        else if (result == 2)
-        {
-            real_root = true;
-            for(int i=0; i<2; i++)
-            {
-                // ei = error_check(roots[i], M, g, W);
-                // if (ei < error)
-                // {   
-                //     error = ei;
-                //     lambda = roots[i]; 
-                // }
-                if (roots[i] > lambda)
-                    lambda = roots[i];
-            }
-        }
+		else if (result == 2)
+		{
+			real_root = true;
+			for(int i=0; i<2; i++)
+			{
+				// ei = error_check(roots[i], M, g, W);
+				// if (ei < error)
+				// {   
+				//     error = ei;
+				//     lambda = roots[i]; 
+				// }
+				if (roots[i] > lambda)
+					lambda = roots[i];
+			}
+		}
 
-        else
-            real_root = false;
-
+		else
+			real_root = false;
 		return real_root;
 	}
 
@@ -525,13 +529,13 @@ class ScanMatching
 		curr_points_ = convert_LaserScan_toPCL(curr_scan_);
 		nautilus_scan_matching::JumpTable prev_scan_jt = update_jump_table(prev_scan_);
 		tf::Transform cur_tr = update_transform(tr_);
-        tf::Transform q = prev_tr_.inverseTimes(cur_tr); //initial guess
+		tf::Transform q = prev_tr_.inverseTimes(cur_tr); //initial guess
 
 		for(int k=0; k<MAX_ITERATIONS; k++)
 		{
 			/*1.Compute the coordinates of the second scan’s points in the first scan’s frame of reference, 
 			according to the roto-translation obtained from odometry update.*/
-			transformed_points_ = get_roto_translation(curr_points_, q); //changed
+			transformed_points_ = get_roto_translation(curr_points_, q);
 			
 			/*2.Find correspondence between points of the current and previous frame. You can use naive way of looking 
 			through all points in sequence or use radial ordering of laser points to speed up the search.*/
@@ -540,87 +544,67 @@ class ScanMatching
 
 			//3. Based on the correspondences, find the necessary tranform.
 			//3.a. Construct the necessary matrices as shown in the paper for solution with Lagrange's multipliers.
-
 			Eigen::Matrix4d M;
 			Eigen::Matrix4d W;
 			Eigen::RowVector4d gT;
 			get_MgW_matrices(C_k, M, gT, W);
-            Eigen::Vector4d g = gT.transpose();
-            Eigen::Vector4d X_;
+			Eigen::Vector4d g = gT.transpose();
+			Eigen::Vector4d X_;
 
 			//3.b. You should get a fourth order polynomial in lamda which you can solve to get value(hint:greatest real root of polynomial equn) of lamda
 			double lambda;
-            bool real_root = find_lambda(lambda, M, g, W);
-            
+			bool real_root = find_lambda(lambda, M, g, W);
+			
 			// //3.c. Use the calculated value of lamda to estimate the transform using equation 24 in the Censi's paper.
 			if (real_root)
-            {
-                X_ = (-(2*M + 2*lambda*W)).inverse().transpose()*g;
+			{
+				X_ = (-(2*M + 2*lambda*W)).inverse().transpose()*g;
 
-                // double check = 1.00 - X_.transpose()*W*X_;
-                // cerr<<check<<endl;
+				// double check = 1.00 - X_.transpose()*W*X_;
+				// cerr<<check<<endl;
+				// cerr<<"Result"<<endl;
+				// cerr<<k<<endl;
+				// cerr<<X_<<endl;
+				// cerr<<endl;
 
-                double yaw = atan2(X_(3), X_(2));
+				double yaw = atan2(X_(3), X_(2));
 
-                //update q
-                geometry_msgs::Pose temp_pose;
-                temp_pose.position.x = X_(0);
-                temp_pose.position.y = X_(1);
-                temp_pose.position.z = 0.0;
-                temp_pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
+				//update q & cur_tr
+				geometry_msgs::Pose temp_pose;
+				temp_pose.position.x = X_(0);
+				temp_pose.position.y = X_(1);
+				temp_pose.position.z = 0.0;
+				temp_pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
 
-                Eigen::Affine3d q_eigen;
-                tf::poseMsgToEigen(temp_pose, q_eigen);
-                tf::transformEigenToTF(q_eigen, q);
-                cur_tr = prev_tr_ * q;
-
-                // cerr<<"Result"<<endl;
-                // cerr<<k<<endl;
-                // cerr<<X_<<endl;
-                // cerr<<endl;
-
-                // pose_msg.header.stamp = ros::Time::now();
-                // pose_msg.header.frame_id = "map";
-                // pose_msg.pose.position.x = X_(0);
-                // pose_msg.pose.position.y = X_(1);
-                // pose_msg.pose.position.z = 0;
-                // pose_msg.pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
-
-                
-                // cerr<<pose_msg.pose.position<<endl;
-                // cerr<<endl;
-
-                // Eigen::Affine3d X_eigen;
-                // tf::poseMsgToEigen(pose_msg.pose, X_eigen);
-                // tf::transformEigenToTF(X_eigen, cur_tr);
-            }
-            
-            else
-            {
-                cerr<<k<<endl;
-                cerr<<"Root doesn't exist\n"<<endl;
-                cerr<<endl;
-                break;
-                // continue;
-            }
+				tf::poseMsgToTF(temp_pose, q);
+				cur_tr = prev_tr_ * q;
+			}
+			
+			else
+			{
+				// cerr<<k<<endl;
+				// cerr<<"Real root doesn't exist\n"<<endl;
+				// cerr<<endl;
+				break;
+			}
 		}
 
-        //4.Publish the estimated pose from scan matching based on the transform obstained. You can visualize the pose in rviz.
-        tf_br.sendTransform(tf::StampedTransform(cur_tr, ros::Time::now(), "map", "fake_laser"));
-        tf::Stamped<tf::Transform> cur_stamped_tr(cur_tr, ros::Time::now(), "map");
-        tf::poseStampedTFToMsg(cur_stamped_tr, pose_msg);
-        pose_pub_.publish(pose_msg);
-        
-        /*5.Also transform the previous frame laserscan points using the roto-translation transform obtained and visualize it. Ideally, this should 
-        coincide with your actual current laserscan message.*/
-        visualization_msgs::MarkerArray fake_scan;
-        fake_scan = getFakeScan(prev_points_, q);
-        fake_scan_pub_.publish(fake_scan);
+		//4.Publish the estimated pose from scan matching based on the transform obstained. You can visualize the pose in rviz.
+		tf_br.sendTransform(tf::StampedTransform(cur_tr, ros::Time::now(), "map", "fake_laser"));
+		tf::Stamped<tf::Transform> cur_stamped_tr(cur_tr, ros::Time::now(), "map");
+		tf::poseStampedTFToMsg(cur_stamped_tr, pose_msg);
+		pose_pub_.publish(pose_msg);
+		
+		/*5.Also transform the previous frame laserscan points using the roto-translation transform obtained and visualize it. Ideally, this should 
+		coincide with your actual current laserscan message.*/
+		visualization_msgs::MarkerArray fake_scan;
+		fake_scan = getFakeScan(prev_points_, q);
+		fake_scan_pub_.publish(fake_scan);
 
-        // update the prev_scan_ & prev_points_
-        prev_scan_ = curr_scan_;
-        prev_points_ = curr_points_;
-        prev_tr_ = cur_tr;
+		// update the prev_scan_ & prev_points_
+		prev_scan_ = curr_scan_;
+		prev_points_ = curr_points_;
+		prev_tr_ = cur_tr;
 	}
 
 	void scan_callback(const sensor_msgs::LaserScan::ConstPtr &scan_msg)
