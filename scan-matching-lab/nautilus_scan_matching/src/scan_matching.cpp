@@ -27,12 +27,12 @@
 
 using namespace std;
 
-inline double SQUARE(double s) 
-{ 
-	return s*s; 
-} 
+inline double SQUARE(double s)
+{
+	return s*s;
+}
 
-class ScanMatching 
+class ScanMatching
 {
   private:
 	ros::NodeHandle nh_;
@@ -49,7 +49,7 @@ class ScanMatching
 	tf::StampedTransform tf_base_laser;
 	sensor_msgs::LaserScan prev_scan_;
 	geometry_msgs::PoseStamped estimated_pose_;
-	
+
 	//Topic names & CONST
 	const string& SCAN_TOPIC  = "/scan";
 	const string& POSE_TOPIC = "/scan_match_pose";
@@ -97,7 +97,7 @@ class ScanMatching
 		Eigen::Affine3d map_laser_eigen;
 		tf::poseMsgToEigen(pose_msg, map_base_eigen);
 		tf::transformTFToEigen(tf_base_laser, base_laser_eigen);
-		
+
 		map_laser_eigen = map_base_eigen*base_laser_eigen;
 		tf::transformEigenToTF(map_laser_eigen, tr_);
 	}
@@ -129,7 +129,7 @@ class ScanMatching
 
 			j = i-1;
 			while(j>=0 && scan_msg.ranges[j] >= scan_msg.ranges[i]) j--;
-			scan_jt.down_smaller.push_back(j-i);            
+			scan_jt.down_smaller.push_back(j-i);
 		}
 		return scan_jt;
 	}
@@ -182,13 +182,13 @@ class ScanMatching
 			temp_marker.header.stamp = ros::Time::now();
 			temp_marker.header.frame_id = "laser";
 			temp_marker.pose.position = transformed_fake_points_[i];
-			
+
 			temp_marker.color.r = 1.0;
 			temp_marker.color.g = 0.0;
 			temp_marker.color.b = 0.0;
 			temp_marker.color.a = 1.0;
 
-			temp_marker.scale.x = 0.1; 
+			temp_marker.scale.x = 0.1;
 			temp_marker.scale.y = 0.1;
 			temp_marker.scale.z = 0.1;
 
@@ -214,13 +214,13 @@ class ScanMatching
 	{
 		nautilus_scan_matching::Correspondence temp_corr;
 		std::vector<nautilus_scan_matching::Correspondence> C_k;
-	
+
 		const int MIN_IDX = 0;
 		const int MAX_IDX = transformed_points_.size()-1;
 
 		int last_best = -1;
 		double C = (double)prev_scan_.ranges.size()/(prev_scan_.angle_max - prev_scan_.angle_min);
-		
+
 		for(int i=0; i<transformed_points_.size(); i++)
 		{
 			double p_iw_norm, p_iw_phi;
@@ -252,26 +252,26 @@ class ScanMatching
 				if (up_stopped){ now_up = false; }
 				else if (down_stopped) { now_up = true; }
 				else { now_up = (last_dist_up < last_dist_down); }
-				
+
 				if (now_up)
 				{
 					if (up > MAX_IDX){up_stopped = true; continue;}
 
 					last_dist_up = calculateDistance(transformed_points_[i], prev_points_[up]);
 					if ((last_dist_up < best_dist) || (j1 ==-1)){ j1 = up; best_dist = last_dist_up;}
-					
+
 					if (up > start_cell)
 					{
 						double up_phi = prev_scan_.angle_min + up*prev_scan_.angle_increment;
 						double del_phi = up_phi - p_iw_phi;
 						double min_dist_up = sin(del_phi)*p_iw_norm;
-						
+
 						if (SQUARE(min_dist_up) > best_dist){up_stopped = true; continue;}
 
 						if (prev_scan_.ranges[up] < p_iw_norm)
 							up += prev_scan_jt.up_bigger[up];
 						else
-							up += prev_scan_jt.up_smaller[up];   
+							up += prev_scan_jt.up_smaller[up];
 					}
 					else
 						up++;
@@ -290,13 +290,13 @@ class ScanMatching
 						double down_phi = prev_scan_.angle_min + down*prev_scan_.angle_increment;
 						double del_phi = p_iw_phi -  down_phi;
 						double min_dist_down = sin(del_phi)*p_iw_norm;
-						
+
 						if (SQUARE(min_dist_down) > best_dist){down_stopped = true; continue;}
 
 						if (prev_scan_.ranges[down] < p_iw_norm)
 							down += prev_scan_jt.down_bigger[down];
 						else
-							down += prev_scan_jt.down_smaller[down]; 
+							down += prev_scan_jt.down_smaller[down];
 					}
 					else
 						down--;
@@ -304,7 +304,7 @@ class ScanMatching
 			}
 
 			// outside while
-			//if no match point found & accounting for boundary condns. 
+			//if no match point found & accounting for boundary condns.
 			if ((j1 <= MIN_IDX) || (j1 >= MAX_IDX) || (j1 == -1) || (best_dist > MAX_CORRESPONDENCE_DIST))
 			{
 				temp_corr.valid = false;
@@ -336,14 +336,14 @@ class ScanMatching
 				continue;
 			}
 
-			// Decide j2 up/down 
-			if(j2_up == -1) 
+			// Decide j2 up/down
+			if(j2_up == -1)
 				j2 = j2_down;
 
-			else if(j2_down == -1) 
+			else if(j2_down == -1)
 				j2 = j2_up;
 
-			else 
+			else
 			{
 				double j2_up_dist = calculateDistance(transformed_points_[i], prev_points_[j2_up]);
 				double j2_down_dist = calculateDistance(transformed_points_[i], prev_points_[j2_down]);
@@ -368,7 +368,7 @@ class ScanMatching
 			C_k.push_back(temp_corr);
 
 			last_best = j1;
-			// cerr<<"p_iw: "<<i<<" j1: "<<j1<<" j2: "<<j2<<" dist_j1: "<<best_dist<<" dist_j2: "<<j2_dist<<endl; 
+			// cerr<<"p_iw: "<<i<<" j1: "<<j1<<" j2: "<<j2<<" dist_j1: "<<best_dist<<" dist_j2: "<<j2_dist<<endl;
 		}
 
 		return C_k;
@@ -389,7 +389,7 @@ class ScanMatching
 		Eigen::Vector2d PI_i;
 
 		for(int i=0; i<C_k.size(); i++)
-		{   
+		{
 			// ignore false match points
 			if(C_k[i].valid == false)
 				continue;
@@ -413,28 +413,20 @@ class ScanMatching
 		}
 	}
 
-	double error_check(double lambda, const Eigen::Matrix4d M, const Eigen::Vector4d g, const Eigen::Matrix4d W)
-	{
-		
-		Eigen::Vector4d X_ = -(2*M + 2*lambda*W).inverse().transpose()*g;
-		double check = X_.transpose()*W*X_;
-		double error = SQUARE(1.0 - check);
-		return error;
-	}
-
-	void zero_check(double lambda, const double a,  const double b,  const double c,  const double d)
-	{
-		double error;
-		error = pow(lambda,4) + a*(pow(lambda,3)) + b*(pow(lambda,2)) + c*lambda + d;
-		cerr<<"Poly solution check: "<<error<<endl;
-	}
+    	double error_check(double lambda, const Eigen::Matrix4d M, const Eigen::Vector4d g, const Eigen::Matrix4d W)
+    	{
+        	Eigen::Vector4d X_ = -(2*M + 2*lambda*W).inverse().transpose()*g;
+        	double check = X_.transpose()*W*X_;
+        	double error = SQUARE(1.0 - check);
+        	return error;
+    	}
 
 	bool find_lambda(double &lambda, const Eigen::Matrix4d M, const Eigen::Vector4d g, const Eigen::Matrix4d W)
 	{
 		Eigen::Matrix2d I;
 		I<<1, 0,
 		0, 1;
-		
+
 		Eigen::Matrix2d A;
 		Eigen::Matrix2d B;
 		Eigen::Matrix2d D;
@@ -449,13 +441,13 @@ class ScanMatching
 		M(3,2), M(3,3);
 
 		//Scaling factor
-		// A = 2*A;
-		// B = 2*B;
-		// D = 2*D;
+		A = 2*A;
+		B = 2*B;
+		D = 2*D;
 
 		Eigen::Matrix2d S;
 		S = D - B.transpose()*A.inverse()*B;
-		
+
 		Eigen::Matrix4d F1; //the matrix in the 1st  term of eqn(31);
 		Eigen::Matrix4d F2; //the matrix in the 2nd term of eqn(31);
 		Eigen::Matrix4d F3; //the matrix in the 3rd term of eqn(31);
@@ -466,8 +458,8 @@ class ScanMatching
 		F2<<A.inverse()*B*S.adjoint()*B.transpose()*A.inverse().transpose(), -A.inverse()*B*S.adjoint(),
 		(-A.inverse()*B*S.adjoint()).transpose(), S.adjoint();
 
-		F3<<A.inverse()*B*S.adjoint().transpose()*S.adjoint()*B.transpose()*A.inverse().transpose(), -A.inverse()*B*S.adjoint().transpose()*S.adjoint(),
-		(-A.inverse()*B*S.adjoint().transpose()*S.adjoint()).transpose(), S.adjoint().transpose()*S.adjoint();
+F3<<A.inverse()*B*S.adjoint().transpose()*S.adjoint()*B.transpose()*A.inverse().transpose(), -A.inverse()*B*S.adjoint().transpose()*S.adjoint(),
+(-A.inverse()*B*S.adjoint().transpose()*S.adjoint()).transpose(), S.adjoint().transpose()*S.adjoint();
 
 		double t0, t1, t2; // 3rd, 2nd, 1st term of left-side eqn(31)
 		t2 = 4*g.transpose()*F1*g;//for lambda^2 term
@@ -480,51 +472,52 @@ class ScanMatching
 		c = (4*a*S.determinant() - t1)/16;
 		d = (SQUARE(S.determinant()) - t0)/16;
 
-		double roots[4];
-		bool real_root;
+        	double roots[4];
+        	bool real_root;
 		int result = SolveP4(roots, a, b, c, d);
-		
-		double error = 1e10;
-		double ei;
 
-		if (result == 4)
-		{
-			real_root = true;
-			for(int i=0; i<4; i++)
-			{
-				// ei = error_check(roots[i], M, g, W);
-				// if (ei < error)
-				// {   
-				//     error = ei;
-				//     lambda = roots[i]; 
-				// }
-				if (roots[i] > lambda)
-					lambda = roots[i];
-			}
-		}
+        	double error = 1e10;
+        	double ei;
 
-		else if (result == 2)
-		{
-			real_root = true;
-			for(int i=0; i<2; i++)
-			{
-				// ei = error_check(roots[i], M, g, W);
-				// if (ei < error)
-				// {   
-				//     error = ei;
-				//     lambda = roots[i]; 
-				// }
-				if (roots[i] > lambda)
-					lambda = roots[i];
-			}
-		}
+        	if (result == 4)
+        	{
+            		real_root = true;
+            		for(int i=0; i<4; i++)
+            		{
+                // ei = error_check(roots[i], M, g, W);
+                // if (ei < error)
+                // {
+                //     error = ei;
+                //     lambda = roots[i];
+                // }
+                		if (roots[i] > lambda)
+                    			lambda = roots[i];
+            		}
+        	}
 
-		else
-			real_root = false;
+        	else if (result == 2)
+        	{
+            		real_root = true;
+            		for(int i=0; i<2; i++)
+            		{
+                // ei = error_check(roots[i], M, g, W);
+                // if (ei < error)
+                // {
+                //     error = ei;
+                //     lambda = roots[i];
+                // }
+                		if (roots[i] > lambda)
+                    		lambda = roots[i];
+            		}
+        	}
+
+        	else
+            		real_root = false;
+
 		return real_root;
 	}
 
-	void do_scan_matching(geometry_msgs::PoseStamped &pose_msg, const sensor_msgs::LaserScan curr_scan_) 
+	void do_scan_matching(geometry_msgs::PoseStamped &pose_msg, const sensor_msgs::LaserScan curr_scan_)
 	{
 		curr_points_ = convert_LaserScan_toPCL(curr_scan_);
 		nautilus_scan_matching::JumpTable prev_scan_jt = update_jump_table(prev_scan_);
@@ -533,11 +526,11 @@ class ScanMatching
 
 		for(int k=0; k<MAX_ITERATIONS; k++)
 		{
-			/*1.Compute the coordinates of the second scan’s points in the first scan’s frame of reference, 
+			/*1.Compute the coordinates of the second scan’s points in the first scan’s frame of reference,
 			according to the roto-translation obtained from odometry update.*/
 			transformed_points_ = get_roto_translation(curr_points_, q);
-			
-			/*2.Find correspondence between points of the current and previous frame. You can use naive way of looking 
+
+			/*2.Find correspondence between points of the current and previous frame. You can use naive way of looking
 			through all points in sequence or use radial ordering of laser points to speed up the search.*/
 			std::vector<nautilus_scan_matching::Correspondence> C_k;
 			C_k = findCorrespondence(prev_scan_jt);
@@ -554,7 +547,7 @@ class ScanMatching
 			//3.b. You should get a fourth order polynomial in lamda which you can solve to get value(hint:greatest real root of polynomial equn) of lamda
 			double lambda;
 			bool real_root = find_lambda(lambda, M, g, W);
-			
+
 			// //3.c. Use the calculated value of lamda to estimate the transform using equation 24 in the Censi's paper.
 			if (real_root)
 			{
@@ -579,7 +572,7 @@ class ScanMatching
 				tf::poseMsgToTF(temp_pose, q);
 				cur_tr = prev_tr_ * q;
 			}
-			
+
 			else
 			{
 				// cerr<<k<<endl;
@@ -594,8 +587,8 @@ class ScanMatching
 		tf::Stamped<tf::Transform> cur_stamped_tr(cur_tr, ros::Time::now(), "map");
 		tf::poseStampedTFToMsg(cur_stamped_tr, pose_msg);
 		pose_pub_.publish(pose_msg);
-		
-		/*5.Also transform the previous frame laserscan points using the roto-translation transform obtained and visualize it. Ideally, this should 
+
+		/*5.Also transform the previous frame laserscan points using the roto-translation transform obtained and visualize it. Ideally, this should
 		coincide with your actual current laserscan message.*/
 		visualization_msgs::MarkerArray fake_scan;
 		fake_scan = getFakeScan(prev_points_, q);
@@ -609,9 +602,9 @@ class ScanMatching
 
 	void scan_callback(const sensor_msgs::LaserScan::ConstPtr &scan_msg)
 	{
-		// get the curr_scan_ 
+		// get the curr_scan_
 		sensor_msgs::LaserScan curr_scan_ = *scan_msg;
-		
+
 		// do the scan matching
 		do_scan_matching(estimated_pose_, curr_scan_);
 	}
@@ -619,7 +612,7 @@ class ScanMatching
 	~ScanMatching() {}
 };
 
-int main(int argc, char **argv) 
+int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "scan_matcher");
 	ScanMatching scan_matching;
