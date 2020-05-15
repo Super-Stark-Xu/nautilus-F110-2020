@@ -56,7 +56,7 @@ class ScanMatching
 	const string& ODOM_TOPIC = "/odom";
 	const string& FAKE_SCAN_TOPIC = "/fake_scan_match";
 	const string& DRIVE_TOPIC = "/nav";
-	const int MAX_ITERATIONS = 100;
+	const int MAX_ITERATIONS = 25;
 	const double MAX_CORRESPONDENCE_DIST = 3.0;
 
 	//Publishers
@@ -76,8 +76,7 @@ class ScanMatching
 		drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(DRIVE_TOPIC, 1);
 		pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>(POSE_TOPIC, 1);
 		fake_scan_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(FAKE_SCAN_TOPIC, 1);
-		//	pose_pub_ = nh_.advertise<visualization_msgs::Marker>("/estimated_position", 1);
-
+		
 		//Subscriber for odometry and laserscan
 		odom_sub_ = nh_.subscribe(ODOM_TOPIC, 10, &ScanMatching::odom_callback, this);
 		scan_sub_ = nh_.subscribe(SCAN_TOPIC, 1, &ScanMatching::scan_callback, this);
@@ -368,7 +367,6 @@ class ScanMatching
 			C_k.push_back(temp_corr);
 
 			last_best = j1;
-			// cerr<<"p_iw: "<<i<<" j1: "<<j1<<" j2: "<<j2<<" dist_j1: "<<best_dist<<" dist_j2: "<<j2_dist<<endl;
 		}
 
 		return C_k;
@@ -413,14 +411,6 @@ class ScanMatching
 		}
 	}
 
-    	double error_check(double lambda, const Eigen::Matrix4d M, const Eigen::Vector4d g, const Eigen::Matrix4d W)
-    	{
-        	Eigen::Vector4d X_ = -(2*M + 2*lambda*W).inverse().transpose()*g;
-        	double check = X_.transpose()*W*X_;
-        	double error = SQUARE(1.0 - check);
-        	return error;
-    	}
-
 	bool find_lambda(double &lambda, const Eigen::Matrix4d M, const Eigen::Vector4d g, const Eigen::Matrix4d W)
 	{
 		Eigen::Matrix2d I;
@@ -441,9 +431,9 @@ class ScanMatching
 		M(3,2), M(3,3);
 
 		//Scaling factor
-		A = 2*A;
-		B = 2*B;
-		D = 2*D;
+		// A = 2*A;
+		// B = 2*B;
+		// D = 2*D;
 
 		Eigen::Matrix2d S;
 		S = D - B.transpose()*A.inverse()*B;
@@ -458,8 +448,8 @@ class ScanMatching
 		F2<<A.inverse()*B*S.adjoint()*B.transpose()*A.inverse().transpose(), -A.inverse()*B*S.adjoint(),
 		(-A.inverse()*B*S.adjoint()).transpose(), S.adjoint();
 
-F3<<A.inverse()*B*S.adjoint().transpose()*S.adjoint()*B.transpose()*A.inverse().transpose(), -A.inverse()*B*S.adjoint().transpose()*S.adjoint(),
-(-A.inverse()*B*S.adjoint().transpose()*S.adjoint()).transpose(), S.adjoint().transpose()*S.adjoint();
+		F3<<A.inverse()*B*S.adjoint().transpose()*S.adjoint()*B.transpose()*A.inverse().transpose(), -A.inverse()*B*S.adjoint().transpose()*S.adjoint(),
+		(-A.inverse()*B*S.adjoint().transpose()*S.adjoint()).transpose(), S.adjoint().transpose()*S.adjoint();
 
 		double t0, t1, t2; // 3rd, 2nd, 1st term of left-side eqn(31)
 		t2 = 4*g.transpose()*F1*g;//for lambda^2 term
@@ -472,47 +462,32 @@ F3<<A.inverse()*B*S.adjoint().transpose()*S.adjoint()*B.transpose()*A.inverse().
 		c = (4*a*S.determinant() - t1)/16;
 		d = (SQUARE(S.determinant()) - t0)/16;
 
-        	double roots[4];
-        	bool real_root;
+    	double roots[4];
+    	bool real_root;
 		int result = SolveP4(roots, a, b, c, d);
 
-        	double error = 1e10;
-        	double ei;
+    	if (result == 4)
+    	{
+        		real_root = true;
+        		for(int i=0; i<4; i++)
+        		{
+        	       if (roots[i] > lambda)
+            	       lambda = roots[i];
+        		}
+    	}
 
-        	if (result == 4)
-        	{
-            		real_root = true;
-            		for(int i=0; i<4; i++)
-            		{
-                // ei = error_check(roots[i], M, g, W);
-                // if (ei < error)
-                // {
-                //     error = ei;
-                //     lambda = roots[i];
-                // }
-                		if (roots[i] > lambda)
-                    			lambda = roots[i];
-            		}
-        	}
+    	else if (result == 2)
+    	{
+        		real_root = true;
+        		for(int i=0; i<2; i++)
+        		{
+            		if (roots[i] > lambda)
+                		lambda = roots[i];
+        		}
+    	}
 
-        	else if (result == 2)
-        	{
-            		real_root = true;
-            		for(int i=0; i<2; i++)
-            		{
-                // ei = error_check(roots[i], M, g, W);
-                // if (ei < error)
-                // {
-                //     error = ei;
-                //     lambda = roots[i];
-                // }
-                		if (roots[i] > lambda)
-                    		lambda = roots[i];
-            		}
-        	}
-
-        	else
-            		real_root = false;
+    	else
+        	real_root = false;
 
 		return real_root;
 	}
@@ -552,14 +527,6 @@ F3<<A.inverse()*B*S.adjoint().transpose()*S.adjoint()*B.transpose()*A.inverse().
 			if (real_root)
 			{
 				X_ = (-(2*M + 2*lambda*W)).inverse().transpose()*g;
-
-				// double check = 1.00 - X_.transpose()*W*X_;
-				// cerr<<check<<endl;
-				// cerr<<"Result"<<endl;
-				// cerr<<k<<endl;
-				// cerr<<X_<<endl;
-				// cerr<<endl;
-
 				double yaw = atan2(X_(3), X_(2));
 
 				//update q & cur_tr
@@ -575,9 +542,6 @@ F3<<A.inverse()*B*S.adjoint().transpose()*S.adjoint()*B.transpose()*A.inverse().
 
 			else
 			{
-				// cerr<<k<<endl;
-				// cerr<<"Real root doesn't exist\n"<<endl;
-				// cerr<<endl;
 				break;
 			}
 		}

@@ -8,6 +8,7 @@
 
   <!-- output="screen" allows us to see print statements-->
   <node pkg="nautilus_scan_matching" name="scan_matcher" type="scan_matching" output="screen"/>
+  <node pkg="nautilus_scan_matching" name="scan_quality" type="scan_match_quality" output="screen"/>
 
   <node pkg="nautilus_wall_following" name="pid_error_node" type="nautilus_pid_error.py"/>	
   <node pkg="nautilus_wall_following" name="control_node" type="nautilus_control.py"/>

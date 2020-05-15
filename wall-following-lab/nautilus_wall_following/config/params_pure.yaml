@@ -15,7 +15,7 @@ pid_gains: {'P': 0.5, 'I': 0.0, 'D': 0.01}
 direction: 'left'
 
 # Max wall-following velocity
-velocity: 0.2
+velocity: 1.0
 
 
 
