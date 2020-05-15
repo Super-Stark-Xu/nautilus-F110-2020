@@ -43,11 +43,11 @@ def control_callback(msg):
         vel = vel
 
     elif abs(ang_deg) >=10 and abs(ang_deg) <= 20.0:
-        vel = 1.0
-
+#       vel = 1.0
+	vel = vel
     else:
-        vel = 0.5
-
+#       vel = 0.5
+	vel = vel
     if direction == 'stop':
         vel = 0.0
         angle = 0.0
