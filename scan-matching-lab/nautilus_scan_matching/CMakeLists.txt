@@ -80,8 +80,8 @@ find_package(Eigen3 REQUIRED)
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
 	DEPENDENCIES
-	geometry_msgs   
-	sensor_msgs   
+	geometry_msgs
+	sensor_msgs
 	std_msgs
 )
 
@@ -151,6 +151,9 @@ install(
 
 add_executable(scan_matching src/scan_matching.cpp)
 target_link_libraries(scan_matching ${PROJECT_NAME} ${catkin_LIBRARIES} ${Eigen_INCLUDE_DIRS})
+
+add_executable(scan_match_quality src/scan_match_quality.cpp)
+target_link_libraries(scan_match_quality ${PROJECT_NAME} ${catkin_LIBRARIES} ${Eigen_INCLUDE_DIRS})
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
