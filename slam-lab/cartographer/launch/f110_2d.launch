@@ -1,0 +1,18 @@
+<launch>
+  <param name="robot_description" command="$(find xacro)/xacro '/home/stark/cartographer_ws/src/cartographer_ros/cartographer_ros/launch/racecar.xacro'" />
+  <node name="robot_state_publisher" pkg="robot_state_publisher"
+    type="robot_state_publisher" />
+
+  <node name="cartographer_node" pkg="cartographer_ros"
+      type="cartographer_node" args="
+          -configuration_directory /home/stark/cartographer_ws/src/cartographer_ros/cartographer_ros/configuration_files
+          -configuration_basename f110_2d.lua"
+     output = "screen">
+  </node>
+
+  <node name="cartographer_occupancy_grid_node" pkg="cartographer_ros"
+      type="cartographer_occupancy_grid_node" args="-resolution 0.05" />
+
+
+
+</launch>
