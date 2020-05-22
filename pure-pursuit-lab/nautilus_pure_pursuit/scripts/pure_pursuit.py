@@ -5,6 +5,7 @@ from race.msg import drive_param
 from nav_msgs.msg import Odometry
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped
+import copy
 
 import math
 import numpy as np
@@ -18,10 +19,10 @@ import time
 class PurePursuit:
     def __init__(self, filepath="DEFAULT"):
         self.LOOKAHEAD_DISTANCE = 1.5 #meters
-        self.TIME_H = 0.5       # sec
+        self.TIME_H = 0.25       # sec
 
         self.THETA_TOLERANCE = math.radians(15)
-        self.L_TOLERANCE = 1e-4
+        self.L_TOLERANCE = 0.05 # 5cm
     
         dirname = os.path.dirname(__file__)
         filename = os.path.join(dirname, '../waypoints/levine-waypoints.csv')
@@ -38,7 +39,6 @@ class PurePursuit:
         self.des_pub = rospy.Publisher('desired_point', PoseStamped, queue_size=1)
         self.cur_pub = rospy.Publisher('current_point', PoseStamped, queue_size=1)
         self.path_pub = rospy.Publisher('/waypoints_path', Path, queue_size=1)
-
         self.pub = rospy.Publisher('drive_parameters', drive_param, queue_size=1)
 
         # Subscriber for odom
@@ -64,34 +64,18 @@ class PurePursuit:
             vel = 0.5
         return vel
 
-    def PP_planner(self, cur_pose):
-        # Plan for a horizon
-        # if (time.time() - self.start_time > self.TIME_H):
-        # 1. Determine the current location of the vehicle (we are subscribed to /odom)
-        # Hint: Read up on Odometry message type in ROS to determine how to extract x, y, and yaw. Make sure to convert quaternion to euler angle.
-        
-        # 2. Find the path point closest to the vehicle that is >= 1 lookahead distance from vehicle's current location.
-        
-        x = cur_pose.pose.position.x
-        y = cur_pose.pose.position.y
-        quaternion = cur_pose.pose.orientation
-        quat = [quaternion.x, quaternion.y, quaternion.z, quaternion.w]
-        yaw = euler_from_quaternion(quat)[2]
-        cur_pos = (x,y,yaw)
-
+    def searchClosestFront(self, cur_pos, path_points):
         min_dist = 1e10
         desired_point = None
-
-        for i in range(len(self.path_points)):
-            path_point = self.path_points[i]
+        for i in range(len(path_points)):
+            path_point = path_points[i]
             L = self.dist(cur_pos, path_point)
-            if (L >= 1.0*self.LOOKAHEAD_DISTANCE): #f (path_point[0] - cur_pos[0] > 0 and L >= 0.75*self.LOOKAHEAD_DISTANCE):
+            if (L >= 1.0*self.LOOKAHEAD_DISTANCE): #if (path_point[0] - cur_pos[0] > 0 and L >= 0.75*self.LOOKAHEAD_DISTANCE):
                 dist_diff = abs(L-self.LOOKAHEAD_DISTANCE)
                 if  dist_diff < min_dist:
                     min_dist = dist_diff
                     desired_point = path_point
 
-        # Rviz the desired point
         des_pose = PoseStamped()
         des_pose.header.stamp = rospy.Time.now()
         des_pose.header.frame_id = "map"
@@ -103,6 +87,36 @@ class PurePursuit:
         des_pose.pose.orientation.y = quat[1]
         des_pose.pose.orientation.z = quat[2]
         des_pose.pose.orientation.w = quat[3]
+
+        self.tf_lis.waitForTransform("/map", "/base_link", des_pose.header.stamp, rospy.Duration(0.5))
+        target_pose = self.tf_lis.transformPose("/base_link", des_pose)
+
+        return desired_point, des_pose, target_pose
+
+    def PP_planner(self, cur_pose):
+        # Plan for a horizon
+        # if (time.time() - self.start_time > self.TIME_H):
+        # 1. Determine the current location of the vehicle (we are subscribed to /odom)
+        # Hint: Read up on Odometry message type in ROS to determine how to extract x, y, and yaw. Make sure to convert quaternion to euler angle.
+        
+        # 2. Find the path point closest to the vehicle that is >= 1 lookahead distance from vehicle's current location.
+        x = cur_pose.pose.position.x
+        y = cur_pose.pose.position.y
+        quaternion = cur_pose.pose.orientation
+        quat = [quaternion.x, quaternion.y, quaternion.z, quaternion.w]
+        yaw = euler_from_quaternion(quat)[2]
+        cur_pos = (x,y,yaw)
+
+        found = False
+        path_points = copy.deepcopy(self.path_points)
+        while (found == False):
+            desired_point, des_pose, target_pose = self.searchClosestFront(cur_pos, path_points)
+            path_points.remove(desired_point)
+
+            if target_pose.pose.position.x > 0:
+                found = True
+
+        # Rviz the desired point
         self.des_pub.publish(des_pose)
 
         # Rviz the path
@@ -113,27 +127,22 @@ class PurePursuit:
         waypoints.poses.append(des_pose)
         self.path_pub.publish(waypoints)
 
-        # 3. Transform the goal point to vehicle coordinates.
-        self.tf_lis.waitForTransform("/map", "/base_link", des_pose.header.stamp, rospy.Duration(1.0))
-        target_pose = self.tf_lis.transformPose("/base_link", des_pose)
+        # 4. Calculate the curvature = 1/r = 2x/l^2
+        # The curvature is transformed into steering wheel angle and published to the 'drive_param' topic.
         x = target_pose.pose.position.x
         y = target_pose.pose.position.y
 
-        # 4. Calculate the curvature = 1/r = 2x/l^2
-        # The curvature is transformed into steering wheel angle and published to the 'drive_param' topic.
         L2 = self.LOOKAHEAD_DISTANCE*self.LOOKAHEAD_DISTANCE
         angle = (2*abs(y))/L2
         
         if (y < 0):
             angle = -angle # Right turn
-
-        if (y > 0):
+        else:
             angle = angle # Left turn
 
         angle = np.clip(angle, -0.4189, 0.4189) # 0.4189 radians = 24 degrees because car can only turn 24 degrees max
         velocity = self.update_lookahead(angle)
-        print(math.degrees(angle), velocity)
-
+        
         msg = drive_param()
         msg.velocity = velocity
         msg.angle = angle
