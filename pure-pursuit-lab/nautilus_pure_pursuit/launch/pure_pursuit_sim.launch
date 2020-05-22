@@ -9,6 +9,6 @@
   	<node pkg="nautilus_pure_pursuit" name="sim_connector_node" type="sim_connector.py" output="screen"/>
   	<node pkg="nautilus_pure_pursuit" name="visualize_markers_node" type="visualize_markers.py" output="screen"/>-->
   	
-  	<node pkg="rviz" type="rviz" name="rviz" args="-d $(find lab_pure_pursuit)/rviz_cfg/pure_pursuit_sim.rviz" output="screen"/>
+  	<node pkg="rviz" type="rviz" name="rviz_pp" args="-d $(find lab_pure_pursuit)/rviz_cfg/pure_pursuit_sim.rviz" output="screen"/>
 
 </launch>
