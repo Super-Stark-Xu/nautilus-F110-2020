@@ -3,8 +3,10 @@
 
   	<include file="$(find racecar_simulator)/launch/simulator.launch">
             <arg name="map" value="$(find racecar_simulator)/maps/levine.yaml"/>
-        </include>
-  
+    </include>
+
+  <!--include file="$(find nautilus_slam_pf)/launch/pf.launch"/-->
+
   	<node pkg="nautilus_pure_pursuit" name="pure_pursuit_node" type="pure_pursuit.py" output="screen"/> 
   	<node pkg="nautilus_pure_pursuit" name="sim_connector_node" type="sim_connector.py" output="screen"/>
   	<node pkg="nautilus_pure_pursuit" name="visualize_markers_node" type="visualize_markers.py" output="screen"/>-->
