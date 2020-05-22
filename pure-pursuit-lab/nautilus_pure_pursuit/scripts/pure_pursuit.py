@@ -9,6 +9,7 @@ from geometry_msgs.msg import PoseStamped
 import math
 import numpy as np
 from numpy import linalg as LA
+import tf 
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 import csv
 import os 
@@ -16,22 +17,22 @@ import time
 
 class PurePursuit:
     def __init__(self, filepath="DEFAULT"):
-        self.LOOKAHEAD_DISTANCE = 2.0 #meters
+        self.LOOKAHEAD_DISTANCE = 1.5 #meters
         self.TIME_H = 0.5       # sec
 
         self.THETA_TOLERANCE = math.radians(15)
         self.L_TOLERANCE = 1e-4
     
         dirname = os.path.dirname(__file__)
-        filename = os.path.join(dirname, '../waypoints/waypoints_saver.csv')
+        filename = os.path.join(dirname, '../waypoints/levine-waypoints.csv')
         with open(filename) as f:
             path_points = [tuple(line) for line in csv.reader(f)]
         
         # Turn path_points into a list of floats to eliminate the need for casts in the code below.
         self.path_points = [(float(point[0]), float(point[1]), float(point[2])) for point in path_points]
-        
 
         self.start_time = time.time()
+        self.tf_lis = tf.TransformListener()
 
         # Publisher for 'drive_parameters' (speed and steering angle)
         self.des_pub = rospy.Publisher('desired_point', PoseStamped, queue_size=1)
@@ -51,25 +52,25 @@ class PurePursuit:
     def update_lookahead(self, angle):
         ang_deg =  math.degrees(angle)
         if abs(ang_deg) >= 0.0 and abs(ang_deg) <= 10.0:
-            self.LOOKAHEAD_DISTANCE = 2.0
+            self.LOOKAHEAD_DISTANCE = 1.5
             vel = 1.5
 
         elif abs(ang_deg) > 10.0 and abs(ang_deg) <= 20.0:
-            self.LOOKAHEAD_DISTANCE = 1.5
+            self.LOOKAHEAD_DISTANCE = 1.0
             vel = 1.0
 
         else:
-            self.LOOKAHEAD_DISTANCE = 1.0
+            self.LOOKAHEAD_DISTANCE = 0.5
             vel = 0.5
         return vel
 
     def PP_planner(self, cur_pose):
         # Plan for a horizon
         # if (time.time() - self.start_time > self.TIME_H):
-            # 1. Determine the current location of the vehicle (we are subscribed to /odom)
-            # Hint: Read up on Odometry message type in ROS to determine how to extract x, y, and yaw. Make sure to convert quaternion to euler angle.
-            
-            # 2. Find the path point closest to the vehicle that is >= 1 lookahead distance from vehicle's current location.
+        # 1. Determine the current location of the vehicle (we are subscribed to /odom)
+        # Hint: Read up on Odometry message type in ROS to determine how to extract x, y, and yaw. Make sure to convert quaternion to euler angle.
+        
+        # 2. Find the path point closest to the vehicle that is >= 1 lookahead distance from vehicle's current location.
         
         x = cur_pose.pose.position.x
         y = cur_pose.pose.position.y
@@ -83,8 +84,8 @@ class PurePursuit:
 
         for i in range(len(self.path_points)):
             path_point = self.path_points[i]
-            if (path_point[0] - cur_pos[0] > 0.5*self.LOOKAHEAD_DISTANCE): #if (abs(cur_pos[2] - path_point[2]) <= self.THETA_TOLERANCE):
-                L = self.dist(cur_pos, path_point)
+            L = self.dist(cur_pos, path_point)
+            if (L >= 1.0*self.LOOKAHEAD_DISTANCE): #f (path_point[0] - cur_pos[0] > 0 and L >= 0.75*self.LOOKAHEAD_DISTANCE):
                 dist_diff = abs(L-self.LOOKAHEAD_DISTANCE)
                 if  dist_diff < min_dist:
                     min_dist = dist_diff
@@ -104,7 +105,7 @@ class PurePursuit:
         des_pose.pose.orientation.w = quat[3]
         self.des_pub.publish(des_pose)
 
-        #Rviz the path
+        # Rviz the path
         waypoints = Path()
         waypoints.header.stamp = rospy.Time.now()
         waypoints.header.frame_id = "map"
@@ -113,8 +114,10 @@ class PurePursuit:
         self.path_pub.publish(waypoints)
 
         # 3. Transform the goal point to vehicle coordinates.
-        x = desired_point[0] - cur_pos[0] # x2 - x1
-        y = desired_point[1] - cur_pos[1] # y2 - y1
+        self.tf_lis.waitForTransform("/map", "/base_link", des_pose.header.stamp, rospy.Duration(1.0))
+        target_pose = self.tf_lis.transformPose("/base_link", des_pose)
+        x = target_pose.pose.position.x
+        y = target_pose.pose.position.y
 
         # 4. Calculate the curvature = 1/r = 2x/l^2
         # The curvature is transformed into steering wheel angle and published to the 'drive_param' topic.
