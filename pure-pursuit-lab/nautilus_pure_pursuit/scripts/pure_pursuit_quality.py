@@ -24,7 +24,7 @@ WINDOW_SIZE = 100
 
 # Import waypoints.csv into a list (path_points)
 dirname = os.path.dirname(__file__)
-filename = os.path.join(dirname, '../waypoints/levine-waypoints.csv')
+filename = os.path.join(dirname, '../waypoints/waypoints_saver.csv')
 with open(filename) as f:
     path_points = [tuple(line) for line in csv.reader(f)]
 
@@ -81,15 +81,17 @@ def callback(msg):
 
     if (num_points % WINDOW_SIZE) == 0:
         print("**** After window at: ",num_points," *****")
-        abs_max = np.max(error)
+        abs_error = np.absolute(error)
+        abs_max = np.max(abs_error)
         print("abs_max: ",abs_max)
         max_errors = np.append(max_errors,abs_max)
         error = np.array([])
 
-        total_abs_max += np.max(max_errors)
+        max_val = np.max(max_errors)
+        total_abs_max = total_abs_max + max_val
         print("total_abs_max: ",total_abs_max)
-
-        append_to_csv("error_values.csv", [abs_max,total_abs_max])
+        csvname = os.path.join(dirname,"error_values.csv")
+        append_to_csv(csvname, [abs_max,total_abs_max])
 	#df = pd.DataFrame(self.points_list, columns=['x', 'y', 'theta'])
 	#df.to_csv('waypoints_saver.csv')
 
