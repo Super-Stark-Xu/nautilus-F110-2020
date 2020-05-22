@@ -3,6 +3,7 @@
 import rospy
 from race.msg import drive_param
 from nav_msgs.msg import Odometry
+from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped
 
 import math
@@ -18,14 +19,14 @@ class PurePursuit:
         self.LOOKAHEAD_DISTANCE = 2.0 #meters
         self.TIME_H = 0.5       # sec
 
-        self.THETA_TOLERANCE = math.radians(135)
+        self.THETA_TOLERANCE = math.radians(15)
         self.L_TOLERANCE = 1e-4
-      
+    
         dirname = os.path.dirname(__file__)
-        filename = os.path.join(dirname, '../waypoints/levine-waypoints.csv')
+        filename = os.path.join(dirname, '../waypoints/waypoints_saver.csv')
         with open(filename) as f:
             path_points = [tuple(line) for line in csv.reader(f)]
-
+        
         # Turn path_points into a list of floats to eliminate the need for casts in the code below.
         self.path_points = [(float(point[0]), float(point[1]), float(point[2])) for point in path_points]
         
@@ -33,9 +34,11 @@ class PurePursuit:
         self.start_time = time.time()
 
         # Publisher for 'drive_parameters' (speed and steering angle)
-        self.pub = rospy.Publisher('drive_parameters', drive_param, queue_size=1)
         self.des_pub = rospy.Publisher('desired_point', PoseStamped, queue_size=1)
         self.cur_pub = rospy.Publisher('current_point', PoseStamped, queue_size=1)
+        self.path_pub = rospy.Publisher('/waypoints_path', Path, queue_size=1)
+
+        self.pub = rospy.Publisher('drive_parameters', drive_param, queue_size=1)
 
         # Subscriber for odom
         self.odom_sub = rospy.Subscriber('/odom', Odometry, self.odom_callback, queue_size=1)
@@ -49,30 +52,38 @@ class PurePursuit:
         ang_deg =  math.degrees(angle)
         if abs(ang_deg) >= 0.0 and abs(ang_deg) <= 10.0:
             self.LOOKAHEAD_DISTANCE = 2.0
-            vel = 2.0
+            vel = 1.5
 
         elif abs(ang_deg) > 10.0 and abs(ang_deg) <= 20.0:
-            self.LOOKAHEAD_DISTANCE = 1.0
+            self.LOOKAHEAD_DISTANCE = 1.5
             vel = 1.0
 
         else:
-            self.LOOKAHEAD_DISTANCE = 0.5
+            self.LOOKAHEAD_DISTANCE = 1.0
             vel = 0.5
         return vel
 
-    def PP_planner(self, cur_pos):
+    def PP_planner(self, cur_pose):
         # Plan for a horizon
         # if (time.time() - self.start_time > self.TIME_H):
             # 1. Determine the current location of the vehicle (we are subscribed to /odom)
             # Hint: Read up on Odometry message type in ROS to determine how to extract x, y, and yaw. Make sure to convert quaternion to euler angle.
             
             # 2. Find the path point closest to the vehicle that is >= 1 lookahead distance from vehicle's current location.
+        
+        x = cur_pose.pose.position.x
+        y = cur_pose.pose.position.y
+        quaternion = cur_pose.pose.orientation
+        quat = [quaternion.x, quaternion.y, quaternion.z, quaternion.w]
+        yaw = euler_from_quaternion(quat)[2]
+        cur_pos = (x,y,yaw)
+
         min_dist = 1e10
         desired_point = None
 
         for i in range(len(self.path_points)):
             path_point = self.path_points[i]
-            if (abs(cur_pos[2] - path_point[2]) <= self.THETA_TOLERANCE):
+            if (path_point[0] - cur_pos[0] > 0.5*self.LOOKAHEAD_DISTANCE): #if (abs(cur_pos[2] - path_point[2]) <= self.THETA_TOLERANCE):
                 L = self.dist(cur_pos, path_point)
                 dist_diff = abs(L-self.LOOKAHEAD_DISTANCE)
                 if  dist_diff < min_dist:
@@ -80,18 +91,26 @@ class PurePursuit:
                     desired_point = path_point
 
         # Rviz the desired point
-        des_pos = PoseStamped()
-        des_pos.header.stamp = rospy.Time.now()
-        des_pos.header.frame_id = "map"
-        des_pos.pose.position.x = desired_point[0]
-        des_pos.pose.position.y = desired_point[1]
-        des_pos.pose.position.z = 0.0
+        des_pose = PoseStamped()
+        des_pose.header.stamp = rospy.Time.now()
+        des_pose.header.frame_id = "map"
+        des_pose.pose.position.x = desired_point[0]
+        des_pose.pose.position.y = desired_point[1]
+        des_pose.pose.position.z = 0.0
         quat = quaternion_from_euler(0.0, 0.0, desired_point[2])
-        des_pos.pose.orientation.x = quat[0]
-        des_pos.pose.orientation.y = quat[1]
-        des_pos.pose.orientation.z = quat[2]
-        des_pos.pose.orientation.w = quat[3]
-        self.des_pub.publish(des_pos)
+        des_pose.pose.orientation.x = quat[0]
+        des_pose.pose.orientation.y = quat[1]
+        des_pose.pose.orientation.z = quat[2]
+        des_pose.pose.orientation.w = quat[3]
+        self.des_pub.publish(des_pose)
+
+        #Rviz the path
+        waypoints = Path()
+        waypoints.header.stamp = rospy.Time.now()
+        waypoints.header.frame_id = "map"
+        waypoints.poses.append(cur_pose)
+        waypoints.poses.append(des_pose)
+        self.path_pub.publish(waypoints)
 
         # 3. Transform the goal point to vehicle coordinates.
         x = desired_point[0] - cur_pos[0] # x2 - x1
@@ -103,14 +122,14 @@ class PurePursuit:
         angle = (2*abs(y))/L2
         
         if (y < 0):
-            angle = angle # Right turn
+            angle = -angle # Right turn
 
         if (y > 0):
-            angle = -angle # Left turn
+            angle = angle # Left turn
 
         angle = np.clip(angle, -0.4189, 0.4189) # 0.4189 radians = 24 degrees because car can only turn 24 degrees max
         velocity = self.update_lookahead(angle)
-        print(angle, velocity)
+        print(math.degrees(angle), velocity)
 
         msg = drive_param()
         msg.velocity = velocity
@@ -124,14 +143,7 @@ class PurePursuit:
         cur_pose.header.frame_id = "map"
         cur_pose.pose = odom_msg.pose.pose
         self.cur_pub.publish(cur_pose)
-
-        x = odom_msg.pose.pose.position.x
-        y = odom_msg.pose.pose.position.y
-        quaternion = odom_msg.pose.pose.orientation
-        quat = [quaternion.x, quaternion.y, quaternion.z, quaternion.w]
-        yaw = euler_from_quaternion(quat)[2]
-        cur_pos = (x,y,yaw)
-        self.PP_planner(cur_pos)
+        self.PP_planner(cur_pose)
 
     def pf_callback(self, pose_msg):
         x = pose_msg.pose.position.x
