@@ -25,7 +25,7 @@ class PurePursuit:
         self.L_TOLERANCE = 0.05 # 5cm
     
         dirname = os.path.dirname(__file__)
-        filename = os.path.join(dirname, '../waypoints/levine-waypoints.csv')
+        filename = os.path.join(dirname, '../waypoints/waypoints_saver.csv')
         with open(filename) as f:
             path_points = [tuple(line) for line in csv.reader(f)]
         
@@ -131,9 +131,16 @@ class PurePursuit:
         # The curvature is transformed into steering wheel angle and published to the 'drive_param' topic.
         x = target_pose.pose.position.x
         y = target_pose.pose.position.y
+#############################
+#        L2 = self.LOOKAHEAD_DISTANCE*self.LOOKAHEAD_DISTANCE
+#	angle = (2*abs(y))/L2
+############################
 
-        L2 = self.LOOKAHEAD_DISTANCE*self.LOOKAHEAD_DISTANCE
-        angle = (2*abs(y))/L2
+	distance = self.dist(cur_pos, desired_point)
+	L2 = distance*distance
+	kappa = (2*abs(y))/L2	#kappa = 1/radis
+	wheelbase = 0.3302
+        angle = np.arctan(wheelbase*kappa)
         
         if (y < 0):
             angle = -angle # Right turn
