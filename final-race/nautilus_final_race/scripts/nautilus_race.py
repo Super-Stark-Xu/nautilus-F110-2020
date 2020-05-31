@@ -6,7 +6,7 @@ from nav_msgs.msg import Odometry
 from nav_msgs.msg import Path
 from std_msgs.msg import String
 from std_msgs.msg import Bool
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
 import copy
 
 import math
@@ -26,7 +26,7 @@ c = MAX_VEL
 class FinalRace:
 	def __init__(self, filepath="DEFAULT"):
 		dirname = os.path.dirname(__file__)
-		filename = os.path.join(dirname, '../waypoints/race_waypoints.csv')
+		filename = os.path.join(dirname, '../waypoints/race_waypoints_small.csv')
 		with open(filename) as f:
 			path_points = [tuple(line) for line in csv.reader(f)]
 		
@@ -38,9 +38,12 @@ class FinalRace:
 		self.path_pub = rospy.Publisher('waypoints_path', Path, queue_size=1)
 		self.drive_pub = rospy.Publisher('drive_parameters', drive_param, queue_size=1)
 		self.key_pub = rospy.Publisher('key', String, queue_size=1)
+		self.initialpose_pub = rospy.Publisher('initialpose', PoseWithCovarianceStamped, queue_size=1)
 
 		self.idx = 0
+		self.chk_idx = [0, 740, 1750, 2300, 3000, 3700]
 		self.LOOKAHEAD_DISTANCE = 2.0 #meters
+		self.initialpose_publish()
 		self.key_publish()
 
 		# Subscriber for odom
@@ -49,8 +52,27 @@ class FinalRace:
 		# self.pf_sub = rospy.Subscriber('/pf/viz/inferred_pose', PoseStamped, self.pf_callback)
 		# self.laser_sub = rospy.Subscriber('/scan', LaserScan, self.laser_callback, queue_size=1)
 		
-	def key_publish(self):
+	def initialpose_publish(self):
 		rospy.sleep(0.5)
+		pose_cov_msg = PoseWithCovarianceStamped()
+		pose_cov_msg.header.stamp = rospy.Time.now()
+		pose_cov_msg.header.frame_id = "map"
+		pose_cov_msg.pose.pose.position.x = 0.0
+		pose_cov_msg.pose.pose.position.y = 0.0
+		pose_cov_msg.pose.pose.position.z = 0.0
+		pose_cov_msg.pose.pose.orientation.x = 0.0
+		pose_cov_msg.pose.pose.orientation.y = 0.0
+		pose_cov_msg.pose.pose.orientation.z = 0.0
+		pose_cov_msg.pose.pose.orientation.w = 1.0
+		pose_cov_msg.pose.covariance = [0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 
+										0.0, 0.2, 0.0, 0.0, 0.0, 0.0, 
+										0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+										0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+										0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
+										0.0, 0.0, 0.0, 0.0, 0.0, 0.06]
+		self.initialpose_pub.publish(pose_cov_msg)
+
+	def key_publish(self):
 		key_msg = String()
 		key_msg.data = 'n'
 		self.key_pub.publish(key_msg)
@@ -94,8 +116,10 @@ class FinalRace:
 	def searchNew(self, cur_pos, path_points):
 		min_dist = 1e10
 		desired_point = None
-		start_idx = self.idx
 		N = len(path_points)
+		if (N - self.idx) < 25: # reset idx
+			self.idx = 0
+		start_idx = self.idx
 		for i in range(start_idx, N):
 			path_point = path_points[i]
 			L = self.dist(cur_pos, path_point)
@@ -107,14 +131,25 @@ class FinalRace:
 					desired_point = path_point
 					self.idx = i
 
-			if (L > 5.0*self.LOOKAHEAD_DISTANCE): #Prune Search Tree
+			if (L > 5.0*self.LOOKAHEAD_DISTANCE): # Prune Search Tree
 				break
 
-		desired_point, des_pose, target_pose = self.TransformPoint(desired_point)
-		return desired_point, des_pose, target_pose
+		return desired_point		
+	
+	def reset_idx(self, cur_idx):
+		close = 1e5
+		des_idx = 0
+		for idx in self.chk_idx:
+			if idx > cur_idx:
+				continue
+
+			dist = cur_idx - idx
+			if dist < close:
+				close = dist
+				des_idx = idx
+		return des_idx
 
 	def PP_planner(self, cur_pose):
-	   
 		# 2. Find the path point closest to the vehicle that is >= 1 lookahead distance from vehicle's current location.
 		x = cur_pose.pose.position.x
 		y = cur_pose.pose.position.y
@@ -124,7 +159,13 @@ class FinalRace:
 		cur_pos = (x,y,yaw)
 
 		# new search method
-		desired_point, des_pose, target_pose = self.searchNew(cur_pos, self.path_points)
+		desired_point = None
+		while(desired_point is None):
+			desired_point = self.searchNew(cur_pos, self.path_points)
+			if desired_point == None:
+				rospy.sleep(0.1)
+				self.idx = self.reset_idx(self.idx)
+		desired_point, des_pose, target_pose = self.TransformPoint(desired_point)
 
 		# Rviz the path
 		waypoints = Path()
@@ -162,7 +203,7 @@ class FinalRace:
 
 	def reset_callback(self, reset_msg):
 		if reset_msg.data == True:
-			self.idx = 0
+			rospy.sleep(0.5)
 			self.key_publish()
 
 	def pf_callback(self, pose_msg):

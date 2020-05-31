@@ -11,7 +11,7 @@ import csv
 import pdb
 
 dirname = os.path.dirname(__file__)
-filename = os.path.join(dirname, '../waypoints/race_waypoints.csv')
+filename = os.path.join(dirname, '../waypoints/race_waypoints_small.csv')
 print(filename)
 with open(filename) as f:
 	path_points = [tuple(line) for line in csv.reader(f)]
