@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<launch>
+ 
+  <include file="$(find racecar_simulator)/launch/simulator.launch">
+  		<arg name="map" value="$(find nautilus_final_race)/maps/race_track_f110.yaml"/>
+  </include>
+
+  <include file="$(find nautilus_final_race)/launch/pf.launch"/>
+  
+  <rosparam command="load" file="$(find nautilus_final_race)/config/params.yaml"/>
+
+  <node pkg="baskaran_wall_following" name="pid_error_node" type="baskaran_pid_error.py" output="screen"/>	
+  <node pkg="baskaran_wall_following" name="control_node" type="baskaran_control.py" output="screen"/>
+  <node pkg="baskaran_wall_following" name="error_analysis" type="baskaran_analysis.py" output="screen"/>
+  <node pkg="nautilus_final_race" name="sim_connector_node" type="sim_connector.py" output="screen"/>
+
+</launch>
+
