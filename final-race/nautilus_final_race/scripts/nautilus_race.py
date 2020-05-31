@@ -18,7 +18,7 @@ import csv
 import os 
 import time
 
-MAX_VEL = 2.5
+MAX_VEL = 4.5
 MIN_VEL = 1.0
 m = (MIN_VEL - MAX_VEL)/24.0
 c = MAX_VEL
@@ -53,7 +53,7 @@ class FinalRace:
 		# self.laser_sub = rospy.Subscriber('/scan', LaserScan, self.laser_callback, queue_size=1)
 		
 	def initialpose_publish(self):
-		rospy.sleep(0.5)
+		rospy.sleep(0.75)
 		pose_cov_msg = PoseWithCovarianceStamped()
 		pose_cov_msg.header.stamp = rospy.Time.now()
 		pose_cov_msg.header.frame_id = "map"
@@ -133,7 +133,6 @@ class FinalRace:
 
 			if (L > 5.0*self.LOOKAHEAD_DISTANCE): # Prune Search Tree
 				break
-
 		return desired_point		
 	
 	def reset_idx(self, cur_idx):
