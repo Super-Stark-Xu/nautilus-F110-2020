@@ -26,7 +26,7 @@ L_CONST = 5.0
 class FinalRace:
     def __init__(self, filepath="DEFAULT"):
         dirname = os.path.dirname(__file__)
-        filename = os.path.join(dirname, '../waypoints/new_race_3.csv')
+        filename = os.path.join(dirname, '../waypoints/new_race_smooth.csv')
         with open(filename) as f:
             path_points = [tuple(line) for line in csv.reader(f)]
         
@@ -96,7 +96,9 @@ class FinalRace:
         text_marker.pose.orientation.y = 0.0
         text_marker.pose.orientation.z = 0.0
         text_marker.pose.orientation.w = 1.0
-        text_msg = "Velocity: " + str(round(drive_msg.velocity,2)) + "\nSteering: " + str(round(drive_msg.angle,2))
+        ang_deg = str(round(math.degrees(drive_msg.angle), 2))
+        velocity = str(round(drive_msg.velocity, 2))
+        text_msg = "Velocity: " + velocity + "\nSteering: " + ang_deg
         text_marker.text =  text_msg
         self.text_marker_pub.publish(text_marker)
 
