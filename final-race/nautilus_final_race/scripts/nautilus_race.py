@@ -18,15 +18,14 @@ import csv
 import os 
 import time
 
-MAX_VEL = 4.5
+MAX_VEL = 6.5
 MIN_VEL = 1.0
-m = (MIN_VEL - MAX_VEL)/24.0
-c = MAX_VEL
+L_CONST = 5.0
 
 class FinalRace:
 	def __init__(self, filepath="DEFAULT"):
 		dirname = os.path.dirname(__file__)
-		filename = os.path.join(dirname, '../waypoints/race_waypoints_small.csv')
+		filename = os.path.join(dirname, '../waypoints/new_race_1.csv')
 		with open(filename) as f:
 			path_points = [tuple(line) for line in csv.reader(f)]
 		
@@ -41,7 +40,9 @@ class FinalRace:
 		self.initialpose_pub = rospy.Publisher('initialpose', PoseWithCovarianceStamped, queue_size=1)
 
 		self.idx = 0
-		self.chk_idx = [0, 740, 1750, 2300, 3000, 3700]
+		self.chk_idx = [0, 700, 1750, 2300, 3000, 3700]
+		self.m = (MIN_VEL - MAX_VEL)/24.0
+		self.c = MAX_VEL
 		self.LOOKAHEAD_DISTANCE = 2.0 #meters
 		self.initialpose_publish()
 		self.key_publish()
@@ -92,7 +93,7 @@ class FinalRace:
 		else:
 			self.LOOKAHEAD_DISTANCE = 1.0
 			
-		vel = m*abs(ang_deg) + c
+		vel = self.m*abs(ang_deg) + self.c
 		print(abs(ang_deg), vel, self.idx)
 		return vel
 
@@ -124,16 +125,16 @@ class FinalRace:
 			path_point = path_points[i]
 			L = self.dist(cur_pos, path_point)
 
-			if (L >= 1.0*self.LOOKAHEAD_DISTANCE) and (L <= 5.0*self.LOOKAHEAD_DISTANCE):
+			if (L >= self.LOOKAHEAD_DISTANCE) and (L <= L_CONST*self.LOOKAHEAD_DISTANCE):
 				dist_diff = abs(L-self.LOOKAHEAD_DISTANCE)
 				if  dist_diff < min_dist:
 					min_dist = dist_diff
 					desired_point = path_point
 					self.idx = i
 
-			if (L > 5.0*self.LOOKAHEAD_DISTANCE): # Prune Search Tree
+			if (L > L_CONST*self.LOOKAHEAD_DISTANCE): # Prune Search Tree
 				break
-		return desired_point		
+		return desired_point	
 	
 	def reset_idx(self, cur_idx):
 		close = 1e5
@@ -204,15 +205,10 @@ class FinalRace:
 		if reset_msg.data == True:
 			rospy.sleep(0.5)
 			self.key_publish()
+			self.idx = self.reset_idx(self.idx)
 
 	def pf_callback(self, pose_msg):
-		x = pose_msg.pose.position.x
-		y = pose_msg.pose.position.y
-		quaternion = pose_msg.pose.orientation
-		quat = [quaternion.x, quaternion.y, quaternion.z, quaternion.w]
-		yaw = euler_from_quaternion(quat)[2]
-		cur_pos = (x,y,yaw)
-		self.PP_planner(cur_pos)
+		self.PP_planner(pose_msg)
 
 if __name__ == '__main__':
 	rospy.init_node('nautilus_final_race')
