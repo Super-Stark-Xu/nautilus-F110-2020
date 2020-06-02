@@ -26,7 +26,7 @@ L_CONST = 5.0
 class FinalRace:
     def __init__(self, filepath="DEFAULT"):
         dirname = os.path.dirname(__file__)
-        filename = os.path.join(dirname, '../waypoints/new_race_smooth.csv')
+        filename = os.path.join(dirname, '../waypoints/new_race_smooth_100.csv')
         with open(filename) as f:
             path_points = [tuple(line) for line in csv.reader(f)]
         
