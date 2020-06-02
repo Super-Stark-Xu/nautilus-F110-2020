@@ -133,7 +133,28 @@ class RRT_solver:
     def smooth_waypoints(self, waypoints):
         # TODO: smooth the waypoints = [(X1,Y1,th1), (X2,Y2,th2), ..., (Xg, Yg, thg)]
         # Apply cubic spline
-        return smooth_waypoints
+	x = 0
+	y = 0
+	theta = 0
+	smooth_waypoints = []
+        for idx in range(waypoints):
+	    if idx < 50 or idx > len(wayponts)-50:
+		smooth_point = waypoints[idx]
+	    else:
+		# find mean the closest 100 point for every point(not the first 50 and last 50 points)
+		for smooth_idx in range(-50,50):
+		    point = waypoints[idx + smooth_idx]
+                    x += point[0]
+                    y += point[1]
+		    theta += point[2]
+
+		smooth_point_x = x/100
+		smooth_point_y = y/100
+		smooth_point_theta = theta/100
+	        smooth_point = tuple(smooth_point_x, smooth_point_y, smooth_point_theta)
+            
+	    smooth_waypoints.append(smooth_point)
+	return smooth_waypoints
 
     def back_trace(self, nodes):
         path_nodes = []
