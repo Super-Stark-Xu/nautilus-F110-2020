@@ -42,12 +42,12 @@ class FinalRace:
         self.text_marker_pub = rospy.Publisher('display_param', Marker, queue_size=1)
 
         self.idx = 0
-        self.chk_idx = [0, 150, 700, 1665, 2300, 3000, 3700, 4100]#-,1750,-
+        self.chk_idx = [0, 700, 1750, 2300, 3000, 3700]
         self.m = (MIN_VEL - MAX_VEL)/24.0
         self.c = MAX_VEL
         self.LOOKAHEAD_DISTANCE = 2.0 #meters
         self.initialpose_publish()
-#        self.key_publish()
+        self.key_publish()
 
         # Subscriber for odom
         self.reset_sub = rospy.Subscriber('/reset_car', Bool, self.reset_callback, queue_size=1 )
@@ -118,7 +118,6 @@ class FinalRace:
             self.LOOKAHEAD_DISTANCE = 1.0
             
         vel = self.m*abs(ang_deg) + self.c
- #       print(abs(ang_deg), vel, self.idx)
         return vel
 
     def TransformPoint(self, desired_point):
@@ -155,12 +154,10 @@ class FinalRace:
                     min_dist = dist_diff
                     desired_point = path_point
                     self.idx = i
-#############
-		    velocity_idx = i
-##############
+
             if (L > L_CONST*self.LOOKAHEAD_DISTANCE): # Prune Search Tree
                 break
-        return desired_point, velocity_idx    
+        return desired_point
     
     def reset_idx(self, cur_idx):
         close = 1e5
@@ -187,7 +184,7 @@ class FinalRace:
         # new search method
         desired_point = None
         while(desired_point is None):
-            desired_point, velocity_idx = self.searchNew(cur_pos, self.path_points)
+            desired_point = self.searchNew(cur_pos, self.path_points)
             if desired_point == None:
                 rospy.sleep(0.1)
                 self.idx = self.reset_idx(self.idx)
@@ -214,15 +211,16 @@ class FinalRace:
 
         angle = np.clip(angle, -0.4189, 0.4189) # 0.4189 radians = 24 degrees because car can only turn 24 degrees max
         velocity = self.update_lookahead(angle)
-	
-	velocity_tmp = velocity 
-	if velocity_idx > 1664 and velocity_idx < 2200: # max speed on straight line
-		velocity = 10
-		if velocity_idx > 2200 and velocity_idx < 2300: # break before curve
-			velocity = (MAX_VEL - 10)*(velocity_idx - 2200)/100 + MAX_VEL
+    
+        # velocity_tmp = velocity
+        # velocity_idx = self.idx
+        # if velocity_idx > 1664 and velocity_idx < 2200: # max speed on straight line
+        #     velocity = 10
+        #     if velocity_idx > 2200 and velocity_idx < 2300: # break before curve
+        #         velocity = (MAX_VEL - 10)*(velocity_idx - 2200)/100 + MAX_VEL
 
-#	if self.idx > 4099 or self.idx < 150:
-#		velocity = 10
+        # if self.idx > 4099 or self.idx < 150:
+        #     velocity = 10
         
         msg = drive_param()
         msg.velocity = velocity

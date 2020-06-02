@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
 
-  	<include file="$(find racecar_simulator)/launch/simulator.launch">
+  	<include file="$(find nautilus_final_race)/launch/simulator.launch">
             <arg name="map" value="$(find nautilus_final_race)/maps/race_track_f110.yaml"/>
     </include>
 
