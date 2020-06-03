@@ -3,6 +3,7 @@
 import rospy
 #from race.msg import drive_param
 from nav_msgs.msg import Odometry
+from visualization_msgs.msg import Marker
 import math
 import numpy as np
 from numpy import linalg as LA
@@ -38,10 +39,33 @@ max_errors = np.array([])
 
 # Publisher for 'drive_parameters' (speed and steering angle)
 #pub = rospy.Publisher('pursuit_quality', float, queue_size=1)
+text_marker_pub = rospy.Publisher('error_param', Marker, queue_size=1)
 
 #############
 # FUNCTIONS #
 #############
+
+def error_param(abs_max, total_abs_max):
+    text_marker = Marker()
+    text_marker.type = text_marker.TEXT_VIEW_FACING
+    text_marker.header.frame_id = 'map'
+    text_marker.scale.x = 1.0
+    text_marker.scale.y = 1.0
+    text_marker.scale.z = 1.0
+    text_marker.color.a = 1.0
+    text_marker.color.r = 0.5 
+    text_marker.pose.position.x = -9.30 # cur_pos[0]
+    text_marker.pose.position.y = -9.578 # cur_pos[1]
+    text_marker.pose.position.z = 0.0
+    text_marker.pose.orientation.x = 0.0
+    text_marker.pose.orientation.y = 0.0
+    text_marker.pose.orientation.z = 0.0
+    text_marker.pose.orientation.w = 1.0
+    abs_max = str(round(abs_max, 1))
+    total_abs_max = str(round(total_abs_max, 1))
+    text_msg = "Max. Absolute Error: " + abs_max + "\nTotal Absolute Error: " + total_abs_max
+    text_marker.text = text_msg
+    text_marker_pub.publish(text_marker)
 
 # Computes the Euclidean distance between two 2D points p1 and p2.
 def dist(p1, p2):
@@ -95,18 +119,20 @@ def callback(msg):
 
     abs_error = np.absolute(error)
     abs_max = np.max(abs_error)
-    print("abs_max: ",abs_max)
     max_errors = np.append(max_errors,abs_max)
     error = np.array([])
 
     max_val = np.max(max_errors)
     total_abs_max = total_abs_max + max_val
-    print("total_abs_max: ",total_abs_max)
     csvname = os.path.join(dirname,"error_values.csv")
     append_to_csv(csvname, [abs_max,total_abs_max])
 
+    # print("total_abs_max: ",total_abs_max)
+    # print("abs_max: ",abs_max)
+    error_param(abs_max, total_abs_max)
 
 if __name__ == '__main__':
     rospy.init_node('final_race_quality')
-    rospy.Subscriber('/odom', Odometry, callback, queue_size=1)
+    rospy.sleep(1.0)
+    rospy.Subscriber('/pf/pose/odom', Odometry, callback, queue_size=1) # Changed the topic to pf/odom
     rospy.spin()

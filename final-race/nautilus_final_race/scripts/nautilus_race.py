@@ -20,7 +20,7 @@ import os
 import time
 
 MAX_VEL = 6.5
-MIN_VEL = 2.0
+MIN_VEL = 1.0
 L_CONST = 5.0
 
 class FinalRace:
