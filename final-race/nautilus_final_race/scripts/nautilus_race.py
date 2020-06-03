@@ -19,14 +19,15 @@ import csv
 import os 
 import time
 
-MAX_VEL = 6.5
-MIN_VEL = 1.0
-L_CONST = 5.0
+MAX_VEL = rospy.get_param('max_velocity')
+MIN_VEL = rospy.get_param('min_velocity')
+L_CONST = rospy.get_param('l_const')
+CSV = rospy.get_param('csv_file')
 
 class FinalRace:
     def __init__(self, filepath="DEFAULT"):
         dirname = os.path.dirname(__file__)
-        filename = os.path.join(dirname, '../waypoints/new_race_smooth_100.csv')
+        filename = os.path.join(dirname, '../waypoints/' + CSV)
         with open(filename) as f:
             path_points = [tuple(line) for line in csv.reader(f)]
         

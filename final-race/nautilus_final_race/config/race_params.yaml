@@ -1,0 +1,12 @@
+
+# Max Velocity (in m/s)
+max_velocity: 6.5
+
+# Min velocity (in m/s)
+min_velocity: 1.0
+
+# Distance to Prune the search tree (in lookahead units)
+l_const: 5.0
+
+# waypoints file
+csv_file: 'new_race_smooth.csv'

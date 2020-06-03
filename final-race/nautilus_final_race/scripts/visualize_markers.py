@@ -10,8 +10,10 @@ import os
 import csv
 import pdb
 
+CSV = rospy.get_param('csv_file')
+
 dirname = os.path.dirname(__file__)
-filename = os.path.join(dirname, '../waypoints/new_race_smooth_100.csv')
+filename = os.path.join(dirname, '../waypoints/' + CSV)
 print(filename)
 with open(filename) as f:
 	path_points = [tuple(line) for line in csv.reader(f)]
