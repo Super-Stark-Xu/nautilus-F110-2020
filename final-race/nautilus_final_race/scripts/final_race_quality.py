@@ -80,10 +80,15 @@ def searchClosest(cur_point, path_points):
 	if  dist_diff < min_dist:
             min_dist = dist_diff
             p1 = path_point
-            if path_points[i-1] < path_points[i+1]:
+	    if i == 0:
+	 	p2 = path_points[i+1]
+	    elif i == len(path_points)-1:
 		p2 = path_points[i-1]
-	    else:
-		p2 = path_points[i+1]
+            else:
+	    	if path_points[i-1] < path_points[i+1]:
+		    p2 = path_points[i-1]
+	        else:
+		    p2 = path_points[i+1]
     return p1, p2
 
 def height(cur_point, p1, p2):
