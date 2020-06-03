@@ -43,6 +43,9 @@ class FinalRace:
         self.text_marker_pub = rospy.Publisher('display_param', Marker, queue_size=1)
 
         self.idx = 0
+##########################
+	self.velocity_idx = 0
+#########################
         self.chk_idx = [0, 700, 1750, 2300, 3000, 3700]
         self.m = (MIN_VEL - MAX_VEL)/24.0
         self.c = MAX_VEL
@@ -109,15 +112,15 @@ class FinalRace:
 
     def update_lookahead(self, angle):
         ang_deg =  math.degrees(angle)
-        if abs(ang_deg) >= 0.0 and abs(ang_deg) <= 10.0:
-            self.LOOKAHEAD_DISTANCE = 2.0
+   #     if abs(ang_deg) >= 0.0 and abs(ang_deg) <= 10.0:
+    #        self.LOOKAHEAD_DISTANCE = 1.8
             
-        elif abs(ang_deg) > 10.0 and abs(ang_deg) <= 20.0:
-            self.LOOKAHEAD_DISTANCE = 1.5
+ #       elif abs(ang_deg) > 10.0 and abs(ang_deg) <= 20.0:
+  #          self.LOOKAHEAD_DISTANCE = 1.5
             
-        else:
-            self.LOOKAHEAD_DISTANCE = 1.0
-            
+#        else:
+#            self.LOOKAHEAD_DISTANCE = 1.0
+        self.LOOKAHEAD_DISTANCE = 2.08 - 1/24*abs(ang_deg)
         vel = self.m*abs(ang_deg) + self.c
         return vel
 
@@ -155,7 +158,9 @@ class FinalRace:
                     min_dist = dist_diff
                     desired_point = path_point
                     self.idx = i
-
+####################
+		    self.velocity_idx = i
+####################
             if (L > L_CONST*self.LOOKAHEAD_DISTANCE): # Prune Search Tree
                 break
         return desired_point
@@ -172,6 +177,26 @@ class FinalRace:
                 close = dist
                 des_idx = idx
         return des_idx
+    
+    def velocity_adjust(self):
+	max_vel = 8.0
+	min_vel = 5.0
+	if self.velocity_idx > 1664 and self.velocity_idx < 2360: # max speed on straight line
+            self.c = max_vel
+            self.m = (min_vel - self.c)/24.0
+#           velocity = 8
+#           print(self.velocity_idx, , velocity_tmp)
+        elif self.velocity_idx >= 2360 and self.velocity_idx <= 2400: # break before curve
+            self.c = (MAX_VEL - max_vel)*(self.velocity_idx - 2360)/40 + max_vel
+            min_vel_tmp = (MIN_VEL - min_vel)*(self.velocity_idx - 2360)/40 + min_vel
+            self.m = (min_vel_tmp - self.c)/24.0
+#            velocity = (velocity_tmp - 8)*(self.velocity_idx - 2200)/100 + 8
+           # print(self.velocity_idx, self.c, self.m)
+        else:
+            self.c = MAX_VEL
+            self.m = (MIN_VEL - self.c)/24.0
+      # if self.idx > 4099 or self.idx < 150:
+
 
     def PP_planner(self, cur_pose):
         # 2. Find the path point closest to the vehicle that is >= 1 lookahead distance from vehicle's current location.
@@ -211,19 +236,14 @@ class FinalRace:
         angle = np.arctan(wheelbase*kappa)
 
         angle = np.clip(angle, -0.4189, 0.4189) # 0.4189 radians = 24 degrees because car can only turn 24 degrees max
-        velocity = self.update_lookahead(angle)
-    
-        # velocity_tmp = velocity
-        # velocity_idx = self.idx
-        # if velocity_idx > 1664 and velocity_idx < 2200: # max speed on straight line
-        #     velocity = 10
-        #     if velocity_idx > 2200 and velocity_idx < 2300: # break before curve
-        #         velocity = (MAX_VEL - 10)*(velocity_idx - 2200)/100 + MAX_VEL
 
-        # if self.idx > 4099 or self.idx < 150:
-        #     velocity = 10
-        
-        msg = drive_param()
+
+##################
+#	self.velocity_adjust()
+##################
+        velocity = self.update_lookahead(angle) 
+
+	msg = drive_param()
         msg.velocity = velocity
         msg.angle = angle
         self.drive_pub.publish(msg)
