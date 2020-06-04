@@ -64,20 +64,6 @@ class RRT_solver:
         # plt.show()
         return im, width, height 
 
-    def dist(self, p1, p2):
-        return sqrt((p1.x-p2.x)**2 + (p1.y-p2.y)**2)
-        
-    def step_from_to(self, p1, p2):
-        if self.dist(p1, p2) < EPSILON:
-            px = int(p2.x)
-            py = int(p2.y)
-            return (px, py)
-        else:
-            theta = atan2(p2.y-p1.y, p2.x-p1.x)
-            px = int(p1.x + EPSILON*cos(theta))
-            py = int(p1.y + EPSILON*sin(theta))
-            return (px, py)
-
     def checkObstacle(self, nn, newNode):
         # TODO: check the map to see if there's an obstacle in between nn, newNode
         # if self.map[x,y] == 255 (cell is obstacle free space); if self.map[x,y] != 255 (obstacle or outside track)
@@ -106,7 +92,21 @@ class RRT_solver:
             return True
         else:
             return False
-    
+
+    def dist(self, p1, p2):
+        return sqrt((p1.x-p2.x)**2 + (p1.y-p2.y)**2)
+        
+    def step_from_to(self, p1, p2):
+        if self.dist(p1, p2) < EPSILON:
+            px = int(p2.x)
+            py = int(p2.y)
+            return (px, py)
+        else:
+            theta = atan2(p2.y-p1.y, p2.x-p1.x)
+            px = int(p1.x + EPSILON*cos(theta))
+            py = int(p1.y + EPSILON*sin(theta))
+            return (px, py)
+
     def checkGoal(self, newNode, goal):
         if self.dist(newNode, goal) < RADIUS and self.checkObstacle(newNode, goal):
             return True
@@ -133,28 +133,28 @@ class RRT_solver:
     def smooth_waypoints(self, waypoints):
         # TODO: smooth the waypoints = [(X1,Y1,th1), (X2,Y2,th2), ..., (Xg, Yg, thg)]
         # Apply cubic spline
-	x = 0
-	y = 0
-	theta = 0
-	smooth_waypoints = []
+        x = 0
+        y = 0
+        theta = 0
+        smooth_waypoints = []
         for idx in range(waypoints):
-	    if idx < 50 or idx > len(wayponts)-50:
-		smooth_point = waypoints[idx]
-	    else:
-		# find mean the closest 100 point for every point(not the first 50 and last 50 points)
-		for smooth_idx in range(-50,50):
-		    point = waypoints[idx + smooth_idx]
-                    x += point[0]
-                    y += point[1]
-		    theta += point[2]
+            if idx < 50 or idx > len(wayponts)-50:
+                smooth_point = waypoints[idx]
+            else:
+                # find mean the closest 100 point for every point(not the first 50 and last 50 points)
+        for smooth_idx in range(-50,50):
+            point = waypoints[idx + smooth_idx]
+            x += point[0]
+            y += point[1]
+            theta += point[2]
 
-		smooth_point_x = x/100
-		smooth_point_y = y/100
-		smooth_point_theta = theta/100
-	        smooth_point = tuple(smooth_point_x, smooth_point_y, smooth_point_theta)
+            smooth_point_x = x/100
+            smooth_point_y = y/100
+            smooth_point_theta = theta/100
+            smooth_point = tuple(smooth_point_x, smooth_point_y, smooth_point_theta)
             
-	    smooth_waypoints.append(smooth_point)
-	return smooth_waypoints
+            smooth_waypoints.append(smooth_point)
+    return smooth_waypoints
 
     def back_trace(self, nodes):
         path_nodes = []
