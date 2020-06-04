@@ -6,10 +6,10 @@
     </include>
 
   <rosparam command="load" file="$(find nautilus_final_race)/config/race_params.yaml"/>
-
+  
+  <include file="$(find race_monitor)/launch/race_monitor.launch"/>
   <include file="$(find nautilus_final_race)/launch/pf.launch"/>
-  <node name="race_monitor_node" pkg="race_monitor" type="race_monitor_node.py" output="screen"/>
-
+  
   <node pkg="nautilus_final_race" name="nautilus_race_node" type="nautilus_race.py" output="screen"/>
   <node pkg="nautilus_final_race" name="final_race_quality_node" type="final_race_quality.py" output="screen"/>
   <node pkg="nautilus_final_race" name="sim_connector_node" type="sim_connector.py" output="screen"/>
