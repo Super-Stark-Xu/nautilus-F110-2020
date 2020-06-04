@@ -1,7 +1,9 @@
+# (6.50, 2.5) --> 10 laps
+# (6.75, 3.0) --> 11 laps
 
 # Max Velocity (in m/s)
 # max_velocity: 3.5 # for RRT
-max_velocity: 7.0 # for race
+max_velocity: 6.75 # for race
 
 # Min velocity (in m/s)
 # min_velocity: 1.0 # for RRT
