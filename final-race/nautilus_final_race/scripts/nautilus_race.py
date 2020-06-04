@@ -23,6 +23,7 @@ MAX_VEL = rospy.get_param('max_velocity')
 MIN_VEL = rospy.get_param('min_velocity')
 L_CONST = rospy.get_param('l_const')
 CSV = rospy.get_param('csv_file')
+LOOKAHEAD = rospy.get_param('lookahead')
 
 class FinalRace:
     def __init__(self, filepath="DEFAULT"):
@@ -51,6 +52,7 @@ class FinalRace:
         self.c = MAX_VEL
         self.LOOKAHEAD_DISTANCE = 2.0 #meters
         self.initialpose_publish()
+
         self.key_publish()
 
         # Subscriber for odom
@@ -120,7 +122,7 @@ class FinalRace:
             
 #        else:
 #            self.LOOKAHEAD_DISTANCE = 1.0
-        self.LOOKAHEAD_DISTANCE = 2.08 - 1/24*abs(ang_deg)
+        self.LOOKAHEAD_DISTANCE = LOOKAHEAD - 1/24*abs(ang_deg)
         vel = self.m*abs(ang_deg) + self.c
         return vel
 

@@ -1,13 +1,21 @@
 
 # Max Velocity (in m/s)
-max_velocity: 3.5
+<<<<<<< HEAD
+max_velocity: 3.5 # for RRT
+max_velocity: 7.0 # for race
 
 # Min velocity (in m/s)
 min_velocity: 1.0
+
+# Lookahead distance at 0 deg steering angle(in m)
+lookahead: 2.08
 
 # Distance to Prune the search tree (in lookahead units)
 l_const: 5.0
 
 # waypoints file
+
 # csv_file: 'new_race_smooth.csv'
+# csv_file: 'new_race_smooth_75_03_1.csv'
 csv_file: 'rrt_waypoints_processed.csv'
+
