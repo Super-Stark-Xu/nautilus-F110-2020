@@ -18,6 +18,7 @@ from csv import writer
 #############
 
 WINDOW_SIZE = 100
+CSV = rospy.get_param('csv_file')
 
 ###########
 # GLOBALS #
@@ -25,7 +26,7 @@ WINDOW_SIZE = 100
 
 # Import waypoints.csv into a list (path_points)
 dirname = os.path.dirname(__file__)
-filename = os.path.join(dirname, '../waypoints/new_race_smooth_100.csv')
+filename = os.path.join(dirname, '../waypoints/' + CSV)
 with open(filename) as f:
     path_points = [tuple(line) for line in csv.reader(f)]
 
@@ -53,7 +54,7 @@ def error_param(abs_max, total_abs_max):
     text_marker.scale.y = 1.0
     text_marker.scale.z = 1.0
     text_marker.color.a = 1.0
-    text_marker.color.r = 0.5 
+    text_marker.color.r = 0.5
     text_marker.pose.position.x = -9.30 # cur_pos[0]
     text_marker.pose.position.y = -9.578 # cur_pos[1]
     text_marker.pose.position.z = 0.0
@@ -85,7 +86,7 @@ def searchClosest(cur_point, path_points):
 	    elif i == len(path_points)-1:
 		p2 = path_points[i-1]
             else:
-	    	if path_points[i-1] < path_points[i+1]:
+	    	if dist(cur_point, path_points[i-1]) < dist(cur_point, path_points[i+1]):
 		    p2 = path_points[i-1]
 	        else:
 		    p2 = path_points[i+1]
